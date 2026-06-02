@@ -1,0 +1,21 @@
+Always use TypeScript.
+
+Always use server components when possible.
+
+Use Valibot for validation.
+
+Use Prisma for database access.
+
+Use Tailwind and shadcn/ui.
+
+Follow accessibility best practices.
+
+Write clean reusable components.
+
+Never expose secrets.
+
+Optimize for SEO.
+
+Optimize for performance.
+
+Ensure all code passes linting and build checks.
