@@ -2,7 +2,14 @@ import type { ProductShowcaseItem } from "@/lib/site";
 
 export type GenderFilter = "Women" | "Men" | "Unisex";
 export type MaterialFilter = "Leather" | "PU Leather" | "Canvas" | "Fabric";
-export type ColorFilter = "Black" | "Brown" | "Beige" | "Pink" | "White" | "Blue" | "Grey";
+export type ColorFilter =
+  | "Black"
+  | "Brown"
+  | "Beige"
+  | "Pink"
+  | "White"
+  | "Blue"
+  | "Grey";
 
 export type PriceFilter =
   | "under-1000"
@@ -17,6 +24,19 @@ export type SortOption =
   | "price-desc"
   | "name-asc";
 
+export interface ProductReview {
+  author: string;
+  rating: number;
+  title: string;
+  comment: string;
+  date: string;
+}
+
+export interface ProductGalleryImage {
+  src: string;
+  alt: string;
+}
+
 export interface CatalogProduct extends ProductShowcaseItem {
   id: string;
   material: MaterialFilter;
@@ -27,6 +47,10 @@ export interface CatalogProduct extends ProductShowcaseItem {
   featured: boolean;
   published: boolean;
   createdAt: string;
+  images: ProductGalleryImage[];
+  variantColors: ColorFilter[];
+  variantSizes: string[];
+  reviews: ProductReview[];
 }
 
 export interface CatalogFilters {
@@ -83,6 +107,45 @@ export const sortOptions: ReadonlyArray<{ value: SortOption; label: string }> = 
   { value: "name-asc", label: "Name: A to Z" },
 ];
 
+function buildReviews(seed: string): ProductReview[] {
+  return [
+    {
+      author: "Achieng O.",
+      rating: 5,
+      title: "Beautiful finish",
+      comment: `${seed} feels polished, structured, and genuinely premium in person.`,
+      date: "2026-05-20",
+    },
+    {
+      author: "Miriam K.",
+      rating: 4,
+      title: "Easy to style",
+      comment: `I have worn ${seed.toLowerCase()} to work and weekends and it adapts beautifully.`,
+      date: "2026-05-26",
+    },
+    {
+      author: "Brian N.",
+      rating: 5,
+      title: "Worth it",
+      comment: `Excellent construction, comfortable carry, and the detailing on ${seed.toLowerCase()} stands out.`,
+      date: "2026-06-02",
+    },
+  ];
+}
+
+function gallery(
+  primary: string,
+  alternateOne: string,
+  alternateTwo: string,
+  name: string,
+): ProductGalleryImage[] {
+  return [
+    { src: primary, alt: `${name} front view` },
+    { src: alternateOne, alt: `${name} styled side view` },
+    { src: alternateTwo, alt: `${name} detail view` },
+  ];
+}
+
 export const catalogProducts: CatalogProduct[] = [
   {
     id: "p-001",
@@ -102,6 +165,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: true,
     published: true,
     createdAt: "2026-05-28",
+    images: gallery("/bags/tote-bag.svg", "/bags/hero-bag.svg", "/bags/handbag-bag.svg", "Kisa Structured Tote"),
+    variantColors: ["Brown", "Beige", "Black"],
+    variantSizes: ["Medium", "Large"],
+    reviews: buildReviews("The Kisa Structured Tote"),
   },
   {
     id: "p-002",
@@ -121,6 +188,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: true,
     published: true,
     createdAt: "2026-06-01",
+    images: gallery("/bags/mini-bag.svg", "/bags/hero-bag.svg", "/bags/handbag-bag.svg", "Nia Mini Crossbody"),
+    variantColors: ["Pink", "Black", "White"],
+    variantSizes: ["Mini"],
+    reviews: buildReviews("The Nia Mini Crossbody"),
   },
   {
     id: "p-003",
@@ -140,6 +211,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: true,
     published: true,
     createdAt: "2026-05-24",
+    images: gallery("/bags/brief-bag.svg", "/bags/hero-bag.svg", "/bags/tote-bag.svg", "Safari Office Brief"),
+    variantColors: ["Black", "Brown"],
+    variantSizes: ['15"', '16"'],
+    reviews: buildReviews("The Safari Office Brief"),
   },
   {
     id: "p-004",
@@ -159,6 +234,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: false,
     published: true,
     createdAt: "2026-06-03",
+    images: gallery("/bags/sling-bag.svg", "/bags/hero-bag.svg", "/bags/travel-bag.svg", "Amani Sling"),
+    variantColors: ["Beige", "Blue", "Black"],
+    variantSizes: ["Small", "Medium"],
+    reviews: buildReviews("The Amani Sling"),
   },
   {
     id: "p-005",
@@ -178,6 +257,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: false,
     published: true,
     createdAt: "2026-06-02",
+    images: gallery("/bags/travel-bag.svg", "/bags/hero-bag.svg", "/bags/brief-bag.svg", "Mara Travel Holdall"),
+    variantColors: ["Grey", "Black", "Brown"],
+    variantSizes: ["Large", "XL"],
+    reviews: buildReviews("The Mara Travel Holdall"),
   },
   {
     id: "p-006",
@@ -197,6 +280,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: false,
     published: true,
     createdAt: "2026-05-30",
+    images: gallery("/bags/handbag-bag.svg", "/bags/hero-bag.svg", "/bags/mini-bag.svg", "Zuri Handheld"),
+    variantColors: ["Black", "Brown", "Pink"],
+    variantSizes: ["Medium"],
+    reviews: buildReviews("The Zuri Handheld"),
   },
   {
     id: "p-007",
@@ -216,6 +303,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: true,
     published: true,
     createdAt: "2026-05-10",
+    images: gallery("/bags/tote-bag.svg", "/bags/handbag-bag.svg", "/bags/hero-bag.svg", "Malaika Everyday Tote"),
+    variantColors: ["Brown", "Black", "Beige"],
+    variantSizes: ["Medium", "Large"],
+    reviews: buildReviews("The Malaika Everyday Tote"),
   },
   {
     id: "p-008",
@@ -235,6 +326,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: true,
     published: true,
     createdAt: "2026-05-08",
+    images: gallery("/bags/brief-bag.svg", "/bags/travel-bag.svg", "/bags/hero-bag.svg", "Cityline Executive Brief"),
+    variantColors: ["Black", "Brown"],
+    variantSizes: ['15"', '16"'],
+    reviews: buildReviews("The Cityline Executive Brief"),
   },
   {
     id: "p-009",
@@ -254,6 +349,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: true,
     published: true,
     createdAt: "2026-05-06",
+    images: gallery("/bags/mini-bag.svg", "/bags/handbag-bag.svg", "/bags/hero-bag.svg", "Petal Mini Evening Bag"),
+    variantColors: ["Pink", "White", "Black"],
+    variantSizes: ["Mini"],
+    reviews: buildReviews("The Petal Mini Evening Bag"),
   },
   {
     id: "p-010",
@@ -273,6 +372,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: false,
     published: true,
     createdAt: "2026-05-18",
+    images: gallery("/bags/sling-bag.svg", "/bags/brief-bag.svg", "/bags/hero-bag.svg", "Blue Mile Messenger"),
+    variantColors: ["Blue", "Grey", "Black"],
+    variantSizes: ["Medium"],
+    reviews: buildReviews("The Blue Mile Messenger"),
   },
   {
     id: "p-011",
@@ -292,6 +395,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: false,
     published: true,
     createdAt: "2026-05-21",
+    images: gallery("/bags/handbag-bag.svg", "/bags/tote-bag.svg", "/bags/hero-bag.svg", "Cloud White Carryall"),
+    variantColors: ["White", "Beige", "Black"],
+    variantSizes: ["Medium", "Large"],
+    reviews: buildReviews("The Cloud White Carryall"),
   },
   {
     id: "p-012",
@@ -311,6 +418,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: false,
     published: true,
     createdAt: "2026-05-17",
+    images: gallery("/bags/tote-bag.svg", "/bags/sling-bag.svg", "/bags/hero-bag.svg", "Daybreak Canvas Tote"),
+    variantColors: ["Beige", "Blue", "Grey"],
+    variantSizes: ["Medium", "Large"],
+    reviews: buildReviews("The Daybreak Canvas Tote"),
   },
   {
     id: "p-013",
@@ -330,6 +441,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: false,
     published: true,
     createdAt: "2026-05-26",
+    images: gallery("/bags/travel-bag.svg", "/bags/brief-bag.svg", "/bags/hero-bag.svg", "Grey Route Weekender"),
+    variantColors: ["Grey", "Black", "Blue"],
+    variantSizes: ["Large", "XL"],
+    reviews: buildReviews("The Grey Route Weekender"),
   },
   {
     id: "p-014",
@@ -349,6 +464,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: false,
     published: true,
     createdAt: "2026-05-29",
+    images: gallery("/bags/tote-bag.svg", "/bags/handbag-bag.svg", "/bags/hero-bag.svg", "Softline Office Tote"),
+    variantColors: ["Beige", "Brown", "Black"],
+    variantSizes: ['13"', '14"'],
+    reviews: buildReviews("The Softline Office Tote"),
   },
   {
     id: "p-015",
@@ -368,6 +487,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: false,
     published: true,
     createdAt: "2026-05-14",
+    images: gallery("/bags/mini-bag.svg", "/bags/sling-bag.svg", "/bags/hero-bag.svg", "Minimal Phone Pouch"),
+    variantColors: ["Black", "White", "Pink"],
+    variantSizes: ["Mini"],
+    reviews: buildReviews("The Minimal Phone Pouch"),
   },
   {
     id: "p-016",
@@ -387,6 +510,10 @@ export const catalogProducts: CatalogProduct[] = [
     featured: false,
     published: true,
     createdAt: "2026-05-31",
+    images: gallery("/bags/handbag-bag.svg", "/bags/mini-bag.svg", "/bags/hero-bag.svg", "Rose Curve Handbag"),
+    variantColors: ["Pink", "Brown", "Black"],
+    variantSizes: ["Medium"],
+    reviews: buildReviews("The Rose Curve Handbag"),
   },
 ];
 
@@ -407,6 +534,33 @@ function priceMatches(price: number, filter?: PriceFilter) {
     default:
       return true;
   }
+}
+
+export function getCatalogProductBySlug(slug: string) {
+  return catalogProducts.find((product) => product.slug === slug);
+}
+
+export function getRelatedProducts(product: CatalogProduct, limit = 4) {
+  return catalogProducts
+    .filter(
+      (candidate) =>
+        candidate.id !== product.id &&
+        candidate.published &&
+        (candidate.category === product.category ||
+          candidate.gender === product.gender ||
+          candidate.material === product.material),
+    )
+    .sort((left, right) => Number(right.featured) - Number(left.featured) || right.price - left.price)
+    .slice(0, limit);
+}
+
+export function getAverageRating(product: CatalogProduct) {
+  if (product.reviews.length === 0) {
+    return 0;
+  }
+
+  const total = product.reviews.reduce((sum, review) => sum + review.rating, 0);
+  return Number((total / product.reviews.length).toFixed(1));
 }
 
 export function filterCatalogProducts(
@@ -462,9 +616,7 @@ export function filterCatalogProducts(
       case "name-asc":
         return left.name.localeCompare(right.name);
       case "newest":
-        return (
-          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-        );
+        return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
       case "featured":
       default:
         return Number(right.featured) - Number(left.featured) || right.price - left.price;
@@ -514,15 +666,9 @@ export function parseCatalogFilters(params?: {
     value ? (Array.isArray(value) ? value : [value]) : [];
 
   const q = Array.isArray(params?.q) ? params?.q[0] ?? "" : params?.q ?? "";
-  const sortValue = Array.isArray(params?.sort)
-    ? params?.sort[0]
-    : params?.sort;
-  const priceValue = Array.isArray(params?.price)
-    ? params?.price[0]
-    : params?.price;
-  const pageValue = Array.isArray(params?.page)
-    ? params?.page[0]
-    : params?.page;
+  const sortValue = Array.isArray(params?.sort) ? params?.sort[0] : params?.sort;
+  const priceValue = Array.isArray(params?.price) ? params?.price[0] : params?.price;
+  const pageValue = Array.isArray(params?.page) ? params?.page[0] : params?.page;
   const page = Math.max(1, Number(pageValue ?? "1") || 1);
 
   return {
