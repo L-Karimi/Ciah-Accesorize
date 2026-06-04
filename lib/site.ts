@@ -63,10 +63,10 @@ export const siteConfig = {
 
 export const navItems: NavItem[] = [
   { href: "/", label: "Home" },
+  { href: "/products", label: "Shop" },
   { href: "/#featured-products", label: "Featured" },
   { href: "/#new-arrivals", label: "New Arrivals" },
   { href: "/#categories", label: "Categories" },
-  { href: "/#reviews", label: "Reviews" },
   { href: "/account", label: "Account" },
 ];
 
