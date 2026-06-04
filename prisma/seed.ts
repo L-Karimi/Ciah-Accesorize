@@ -1,9 +1,26 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { hash } from "bcryptjs";
+import { Pool } from "pg";
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not set.");
+}
+
+const pool = new Pool({
+  connectionString,
+});
+
+const prisma = new PrismaClient({
+  adapter: new PrismaPg(pool),
+});
 
 async function main() {
   console.log("🌱 Seeding database...");
+
+  const defaultPassword = await hash("password123", 12);
 
   // Create categories
   const categories = await Promise.all([
@@ -295,16 +312,37 @@ async function main() {
   // Create sample user
   const user = await prisma.user.upsert({
     where: { email: "customer@example.com" },
-    update: {},
+    update: {
+      password: defaultPassword,
+      role: "CUSTOMER",
+    },
     create: {
       email: "customer@example.com",
       name: "John Doe",
       phone: "+254700000000",
+      password: defaultPassword,
       role: "CUSTOMER",
     },
   });
 
   console.log("✓ Created sample user");
+
+  await prisma.user.upsert({
+    where: { email: "admin@ciahaccessorize.com" },
+    update: {
+      password: defaultPassword,
+      role: "ADMIN",
+    },
+    create: {
+      email: "admin@ciahaccessorize.com",
+      name: "Ciah Admin",
+      phone: "+254711111111",
+      password: defaultPassword,
+      role: "ADMIN",
+    },
+  });
+
+  console.log("✓ Created sample admin");
 
   // Create sample address
   await prisma.address.create({
@@ -436,4 +474,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });
