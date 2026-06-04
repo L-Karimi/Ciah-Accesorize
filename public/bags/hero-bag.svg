@@ -1,0 +1,38 @@
+<svg width="900" height="1100" viewBox="0 0 900 1100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1100" rx="64" fill="url(#bg)"/>
+  <circle cx="720" cy="220" r="190" fill="url(#glow)" fill-opacity="0.75"/>
+  <circle cx="180" cy="920" r="220" fill="#F5D5D8" fill-opacity="0.55"/>
+  <path d="M293 420C293 308.365 383.365 218 495 218C606.635 218 697 308.365 697 420V473H642V420C642 338.741 576.259 273 495 273C413.741 273 348 338.741 348 420V473H293V420Z" fill="#F7F0E7"/>
+  <g filter="url(#shadow)">
+    <path d="M222 455C222 418.549 251.549 389 288 389H702C738.451 389 768 418.549 768 455V799C768 900.068 686.068 982 585 982H405C303.932 982 222 900.068 222 799V455Z" fill="url(#bag)"/>
+    <path d="M250 491C250 459.52 275.52 434 307 434H683C714.48 434 740 459.52 740 491V785C740 865.634 674.634 931 594 931H396C315.366 931 250 865.634 250 785V491Z" stroke="#F1E4D3" stroke-opacity="0.85" stroke-width="8"/>
+  </g>
+  <path d="M266 575C266 547.386 288.386 525 316 525H675C702.614 525 725 547.386 725 575V616C725 720.934 639.934 806 535 806H456C351.066 806 266 720.934 266 616V575Z" fill="#A27450" fill-opacity="0.22"/>
+  <path d="M358 430C358 356.546 417.546 297 491 297H499C572.454 297 632 356.546 632 430V473H590V430C590 379.742 549.258 339 499 339H491C440.742 339 400 379.742 400 430V473H358V430Z" fill="#EAD7C2"/>
+  <rect x="430" y="605" width="130" height="30" rx="15" fill="#F8F3EC" fill-opacity="0.92"/>
+  <defs>
+    <filter id="shadow" x="172" y="339" width="646" height="693" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="24"/>
+      <feGaussianBlur stdDeviation="25"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0705882 0 0 0 0 0.054902 0 0 0 0 0.0509804 0 0 0 0.18 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+    <linearGradient id="bg" x1="92" y1="108" x2="774" y2="1006" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDF9F4"/>
+      <stop offset="0.48" stop-color="#F4E7D8"/>
+      <stop offset="1" stop-color="#E7D5C0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(720 220) rotate(90) scale(190)">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bag" x1="248" y1="416" x2="740" y2="931" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5E3C"/>
+      <stop offset="0.52" stop-color="#6C4830"/>
+      <stop offset="1" stop-color="#171312"/>
+    </linearGradient>
+  </defs>
+</svg>

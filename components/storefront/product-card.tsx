@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,17 @@ interface ProductCardProps {
 export function ProductCard({ item }: ProductCardProps) {
   return (
     <Card className="overflow-hidden border-border/80 bg-white">
-      <div className={`h-48 bg-gradient-to-br ${item.accent}`} />
+      <div className={`relative h-60 bg-gradient-to-br ${item.accent}`}>
+        <span className="absolute left-4 top-4 z-10 rounded-full bg-white/88 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#8B5E3C]">
+          {item.badge}
+        </span>
+        <Image
+          src={item.image}
+          alt={item.name}
+          fill
+          className="object-contain px-6 py-4"
+        />
+      </div>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>

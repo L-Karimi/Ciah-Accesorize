@@ -12,3 +12,11 @@ export const inquirySchema = object({
     minLength(12, "Tell us a little more so we can help."),
   ),
 });
+
+export const newsletterSchema = object({
+  email: pipe(
+    string("Email is required."),
+    nonEmpty("Email is required."),
+    email("Enter a valid email address."),
+  ),
+});
