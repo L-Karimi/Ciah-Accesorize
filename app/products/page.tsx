@@ -7,6 +7,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { ProductCard } from "@/components/storefront/product-card";
 import { CatalogFilters } from "@/components/storefront/catalog-filters";
 import { CatalogResultsSummary } from "@/components/storefront/catalog-results-summary";
+import { getServerAuthSession } from "@/lib/auth";
 import {
   buildCatalogHref,
   catalogProducts,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/catalog";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site";
+import { getCurrentUserWishlistSlugs } from "@/lib/wishlist";
 
 const PRODUCTS_PER_PAGE = 9;
 
@@ -62,6 +64,9 @@ interface ProductsPageProps {
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const params = searchParams ? await searchParams : undefined;
+  const session = await getServerAuthSession();
+  const wishlistSlugs = new Set(await getCurrentUserWishlistSlugs());
+  const isAuthenticated = Boolean(session?.user);
   const filters = parseCatalogFilters(params);
   const filteredProducts = filterCatalogProducts(catalogProducts, filters);
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
@@ -201,7 +206,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               <>
                 <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                   {paginatedProducts.map((product) => (
-                    <ProductCard key={product.id} item={product} />
+                    <ProductCard
+                      key={product.id}
+                      item={product}
+                      wishlisted={wishlistSlugs.has(product.slug)}
+                      isAuthenticated={isAuthenticated}
+                    />
                   ))}
                 </div>
 

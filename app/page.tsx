@@ -8,6 +8,7 @@ import { NewsletterForm } from "@/components/storefront/newsletter-form";
 import { ProductCard } from "@/components/storefront/product-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { getServerAuthSession } from "@/lib/auth";
 import {
   bestSellers,
   categoryShowcase,
@@ -18,6 +19,7 @@ import {
   newArrivals,
   siteConfig,
 } from "@/lib/site";
+import { getCurrentUserWishlistSlugs } from "@/lib/wishlist";
 
 export const metadata: Metadata = {
   title: "Premium Bags Kenya",
@@ -59,6 +61,9 @@ function matchesQuery(query: string, values: string[]) {
 export default async function Home({ searchParams }: HomePageProps) {
   const params = searchParams ? await searchParams : undefined;
   const query = params?.q?.trim().toLowerCase() ?? "";
+  const session = await getServerAuthSession();
+  const wishlistSlugs = new Set(await getCurrentUserWishlistSlugs());
+  const isAuthenticated = Boolean(session?.user);
 
   const filteredFeatured = featuredProducts.filter((product) =>
     matchesQuery(query, [product.name, product.category, product.material, product.color]),
@@ -225,7 +230,12 @@ export default async function Home({ searchParams }: HomePageProps) {
         </div>
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
           {filteredFeatured.map((item) => (
-            <ProductCard key={item.slug} item={item} />
+            <ProductCard
+              key={item.slug}
+              item={item}
+              wishlisted={wishlistSlugs.has(item.slug)}
+              isAuthenticated={isAuthenticated}
+            />
           ))}
         </div>
       </section>
@@ -257,7 +267,12 @@ export default async function Home({ searchParams }: HomePageProps) {
           </div>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filteredArrivals.map((item) => (
-              <ProductCard key={item.slug} item={item} />
+              <ProductCard
+                key={item.slug}
+                item={item}
+                wishlisted={wishlistSlugs.has(item.slug)}
+                isAuthenticated={isAuthenticated}
+              />
             ))}
           </div>
         </div>
@@ -357,7 +372,12 @@ export default async function Home({ searchParams }: HomePageProps) {
 
           <div className="grid gap-5">
             {filteredBestSellers.slice(1).map((item) => (
-              <ProductCard key={item.slug} item={item} />
+              <ProductCard
+                key={item.slug}
+                item={item}
+                wishlisted={wishlistSlugs.has(item.slug)}
+                isAuthenticated={isAuthenticated}
+              />
             ))}
           </div>
         </div>

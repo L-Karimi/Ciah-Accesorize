@@ -69,9 +69,20 @@ export default async function AccountPage() {
               Browse the collection while we keep filling out the customer account
               experience.
             </p>
-            <Link href="/" className={buttonVariants({ className: "mt-6 h-11 px-5" })}>
-              Return Home
-            </Link>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/" className={buttonVariants({ className: "h-11 px-5" })}>
+                Return Home
+              </Link>
+              <Link
+                href="/wishlist"
+                className={buttonVariants({
+                  variant: "outline",
+                  className: "h-11 px-5",
+                })}
+              >
+                View Wishlist
+              </Link>
+            </div>
           </div>
         </section>
       </div>

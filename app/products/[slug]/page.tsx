@@ -8,6 +8,7 @@ import { ProductCard } from "@/components/storefront/product-card";
 import { ProductGallery } from "@/components/storefront/product-gallery";
 import { ProductPurchasePanel } from "@/components/storefront/product-purchase-panel";
 import { buttonVariants } from "@/components/ui/button";
+import { getServerAuthSession } from "@/lib/auth";
 import {
   catalogProducts,
   getAverageRating,
@@ -15,6 +16,7 @@ import {
   getRelatedProducts,
 } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
+import { getCurrentUserWishlistSlugs } from "@/lib/wishlist";
 
 interface ProductPageProps {
   params: Promise<{
@@ -81,6 +83,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
+  const session = await getServerAuthSession();
+  const wishlistSlugs = new Set(await getCurrentUserWishlistSlugs());
+  const isAuthenticated = Boolean(session?.user);
   const relatedProducts = getRelatedProducts(product, 4);
   const averageRating = getAverageRating(product);
 
@@ -165,7 +170,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
             name={product.name}
             accent={product.accent}
           />
-          <ProductPurchasePanel product={product} averageRating={averageRating} />
+          <ProductPurchasePanel
+            product={product}
+            averageRating={averageRating}
+            wishlisted={wishlistSlugs.has(product.slug)}
+            isAuthenticated={isAuthenticated}
+          />
         </div>
       </section>
 
@@ -266,7 +276,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </div>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {relatedProducts.map((relatedProduct) => (
-            <ProductCard key={relatedProduct.id} item={relatedProduct} />
+            <ProductCard
+              key={relatedProduct.id}
+              item={relatedProduct}
+              wishlisted={wishlistSlugs.has(relatedProduct.slug)}
+              isAuthenticated={isAuthenticated}
+            />
           ))}
         </div>
       </section>

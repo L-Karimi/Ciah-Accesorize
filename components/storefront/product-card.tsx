@@ -1,15 +1,21 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Heart } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { WishlistToggle } from "@/components/storefront/wishlist-toggle";
 import type { ProductShowcaseItem } from "@/lib/site";
 
 interface ProductCardProps {
   item: ProductShowcaseItem;
+  wishlisted?: boolean;
+  isAuthenticated?: boolean;
 }
 
-export function ProductCard({ item }: ProductCardProps) {
+export function ProductCard({
+  item,
+  wishlisted = false,
+  isAuthenticated = false,
+}: ProductCardProps) {
   return (
     <Card className="overflow-hidden border-border/80 bg-white">
       <Link href={`/products/${item.slug}`} className={`relative block h-60 bg-gradient-to-br ${item.accent}`}>
@@ -35,13 +41,13 @@ export function ProductCard({ item }: ProductCardProps) {
               </Link>
             </CardTitle>
           </div>
-          <button
-            type="button"
-            className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-white"
-            aria-label={`Save ${item.name} to wishlist`}
-          >
-            <Heart className="size-4" />
-          </button>
+          <WishlistToggle
+            productSlug={item.slug}
+            productName={item.name}
+            initialWishlisted={wishlisted}
+            isAuthenticated={isAuthenticated}
+            compact
+          />
         </div>
         <CardDescription>{item.description}</CardDescription>
       </CardHeader>

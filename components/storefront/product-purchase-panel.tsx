@@ -1,24 +1,28 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Heart, Minus, Plus, ShoppingBag, Star } from "lucide-react";
+import { Check, Minus, Plus, ShoppingBag, Star } from "lucide-react";
 import type { CatalogProduct, ColorFilter } from "@/lib/catalog";
+import { WishlistToggle } from "@/components/storefront/wishlist-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ProductPurchasePanelProps {
   product: CatalogProduct;
   averageRating: number;
+  wishlisted?: boolean;
+  isAuthenticated?: boolean;
 }
 
 export function ProductPurchasePanel({
   product,
   averageRating,
+  wishlisted = false,
+  isAuthenticated = false,
 }: ProductPurchasePanelProps) {
   const [selectedColor, setSelectedColor] = useState<ColorFilter>(product.color);
   const [selectedSize, setSelectedSize] = useState(product.variantSizes[0] ?? product.size);
   const [quantity, setQuantity] = useState(1);
-  const [wishlist, setWishlist] = useState(false);
   const [cartMessage, setCartMessage] = useState<string | null>(null);
 
   const stockLabel = useMemo(() => {
@@ -157,15 +161,12 @@ export function ProductPurchasePanel({
             <ShoppingBag className="size-4" />
             Add To Cart
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 rounded-full px-5"
-            onClick={() => setWishlist((current) => !current)}
-          >
-            <Heart className={cn("size-4", wishlist ? "fill-current text-[#8B5E3C]" : "")} />
-            {wishlist ? "Wishlisted" : "Add To Wishlist"}
-          </Button>
+          <WishlistToggle
+            productSlug={product.slug}
+            productName={product.name}
+            initialWishlisted={wishlisted}
+            isAuthenticated={isAuthenticated}
+          />
         </div>
 
         {cartMessage ? (
