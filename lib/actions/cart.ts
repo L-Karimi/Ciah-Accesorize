@@ -10,6 +10,10 @@ import {
   resolvePersistedCartProduct,
   setGuestCartEntries,
 } from "@/lib/cart";
+import {
+  getDatabaseSetupErrorMessage,
+  isPrismaSetupError,
+} from "@/lib/prisma-errors";
 import { prisma } from "@/lib/prisma";
 
 function revalidateCartSurfaces(productSlug?: string) {
@@ -24,18 +28,26 @@ function revalidateCartSurfaces(productSlug?: string) {
 }
 
 async function getCartProductSnapshot(productSlug: string) {
-  const persistedProduct = await prisma.product.findFirst({
-    where: {
-      slug: productSlug,
-      deletedAt: null,
-    },
-    select: {
-      slug: true,
-      name: true,
-      stock: true,
-      published: true,
-    },
-  });
+  let persistedProduct = null;
+
+  try {
+    persistedProduct = await prisma.product.findFirst({
+      where: {
+        slug: productSlug,
+        deletedAt: null,
+      },
+      select: {
+        slug: true,
+        name: true,
+        stock: true,
+        published: true,
+      },
+    });
+  } catch (error) {
+    if (!isPrismaSetupError(error)) {
+      throw error;
+    }
+  }
 
   if (persistedProduct) {
     return persistedProduct;
@@ -56,19 +68,27 @@ async function getCartProductSnapshot(productSlug: string) {
 }
 
 async function findPersistedCartProduct(productSlug: string) {
-  return prisma.product.findFirst({
-    where: {
-      slug: productSlug,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      stock: true,
-      published: true,
-    },
-  });
+  try {
+    return await prisma.product.findFirst({
+      where: {
+        slug: productSlug,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        stock: true,
+        published: true,
+      },
+    });
+  } catch (error) {
+    if (isPrismaSetupError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 export async function addProductToCart(productSlug: string, quantity = 1) {
@@ -105,7 +125,7 @@ export async function addProductToCart(productSlug: string, quantity = 1) {
       if (!persistedProduct || !persistedProduct.published) {
         return {
           success: false,
-          error: "Product not found.",
+          error: getDatabaseSetupErrorMessage("save items to your authenticated cart"),
         };
       }
 
@@ -171,7 +191,9 @@ export async function addProductToCart(productSlug: string, quantity = 1) {
     console.error("Add to cart error:", error);
     return {
       success: false,
-      error: "We could not update your cart right now.",
+      error: isPrismaSetupError(error)
+        ? getDatabaseSetupErrorMessage("update your cart")
+        : "We could not update your cart right now.",
     };
   }
 }
@@ -205,7 +227,7 @@ export async function updateCartItemQuantity(productSlug: string, quantity: numb
       if (!persistedProduct) {
         return {
           success: false,
-          error: "Product not found.",
+          error: getDatabaseSetupErrorMessage("update your authenticated cart"),
         };
       }
 
@@ -242,7 +264,9 @@ export async function updateCartItemQuantity(productSlug: string, quantity: numb
     console.error("Update cart quantity error:", error);
     return {
       success: false,
-      error: "We could not update your cart right now.",
+      error: isPrismaSetupError(error)
+        ? getDatabaseSetupErrorMessage("update your cart")
+        : "We could not update your cart right now.",
     };
   }
 }
@@ -279,7 +303,9 @@ export async function removeProductFromCart(productSlug: string) {
     console.error("Remove from cart error:", error);
     return {
       success: false,
-      error: "We could not update your cart right now.",
+      error: isPrismaSetupError(error)
+        ? getDatabaseSetupErrorMessage("update your cart")
+        : "We could not update your cart right now.",
     };
   }
 }
@@ -367,6 +393,9 @@ export async function mergeGuestCartAfterLogin() {
     return {
       success: false,
       merged: false,
+      error: isPrismaSetupError(error)
+        ? getDatabaseSetupErrorMessage("merge your cart")
+        : undefined,
     };
   }
 }

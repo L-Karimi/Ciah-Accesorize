@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerAuthSession } from "@/lib/auth";
+import {
+  getDatabaseSetupErrorMessage,
+  isPrismaSetupError,
+} from "@/lib/prisma-errors";
 import { prisma } from "@/lib/prisma";
 import {
   ensurePersistedCatalogProduct,
@@ -69,7 +73,9 @@ export async function addProductToWishlist(productSlug: string) {
     console.error("Add wishlist error:", error);
     return {
       success: false,
-      error: "We could not save that product right now.",
+      error: isPrismaSetupError(error)
+        ? getDatabaseSetupErrorMessage("save products to your wishlist")
+        : "We could not save that product right now.",
     };
   }
 }
@@ -112,7 +118,9 @@ export async function removeProductFromWishlist(productSlug: string) {
     console.error("Remove wishlist error:", error);
     return {
       success: false,
-      error: "We could not update your wishlist right now.",
+      error: isPrismaSetupError(error)
+        ? getDatabaseSetupErrorMessage("update your wishlist")
+        : "We could not update your wishlist right now.",
     };
   }
 }

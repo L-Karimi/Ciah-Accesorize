@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import { getServerAuthSession } from "@/lib/auth";
 import { catalogProducts, type CatalogProduct } from "@/lib/catalog";
+import { isPrismaSetupError } from "@/lib/prisma-errors";
 import { prisma } from "@/lib/prisma";
 import { ensurePersistedCatalogProduct } from "@/lib/wishlist";
 
@@ -234,19 +235,30 @@ export async function clearGuestCartEntries() {
 }
 
 export async function resolvePersistedCartProduct(productSlug: string) {
-  const existingProduct = await prisma.product.findFirst({
-    where: {
-      slug: productSlug,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      stock: true,
-      published: true,
-    },
-  });
+  let existingProduct = null;
+
+  try {
+    existingProduct = await prisma.product.findFirst({
+      where: {
+        slug: productSlug,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        stock: true,
+        published: true,
+      },
+    });
+  } catch (error) {
+    if (isPrismaSetupError(error)) {
+      console.warn("Cart product lookup skipped because the database is not ready yet.");
+      return null;
+    }
+
+    throw error;
+  }
 
   if (existingProduct) {
     return existingProduct;
@@ -258,7 +270,18 @@ export async function resolvePersistedCartProduct(productSlug: string) {
     return null;
   }
 
-  const persistedProduct = await ensurePersistedCatalogProduct(catalogProduct);
+  let persistedProduct;
+
+  try {
+    persistedProduct = await ensurePersistedCatalogProduct(catalogProduct);
+  } catch (error) {
+    if (isPrismaSetupError(error)) {
+      console.warn("Cart product persistence skipped because the database is not ready yet.");
+      return null;
+    }
+
+    throw error;
+  }
 
   return {
     id: persistedProduct.id,
@@ -274,24 +297,33 @@ async function getPersistedProductsBySlug(productSlugs: string[]) {
     return new Map<string, PersistedCartProduct>();
   }
 
-  const persistedProducts = await prisma.product.findMany({
-    where: {
-      slug: {
-        in: productSlugs,
+  try {
+    const persistedProducts = await prisma.product.findMany({
+      where: {
+        slug: {
+          in: productSlugs,
+        },
+        deletedAt: null,
       },
-      deletedAt: null,
-    },
-    include: {
-      category: true,
-      images: {
-        orderBy: {
-          order: "asc",
+      include: {
+        category: true,
+        images: {
+          orderBy: {
+            order: "asc",
+          },
         },
       },
-    },
-  });
+    });
 
-  return new Map(persistedProducts.map((product) => [product.slug, product]));
+    return new Map(persistedProducts.map((product) => [product.slug, product]));
+  } catch (error) {
+    if (isPrismaSetupError(error)) {
+      console.warn("Guest cart is using catalog fallback because the database is not ready yet.");
+      return new Map<string, PersistedCartProduct>();
+    }
+
+    throw error;
+  }
 }
 
 async function getGuestCartItems() {
@@ -325,31 +357,40 @@ async function getGuestCartItems() {
 }
 
 async function getAuthenticatedCartItems(userId: string) {
-  const cartItems = await prisma.cartItem.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      product: {
-        include: {
-          category: true,
-          images: {
-            orderBy: {
-              order: "asc",
+  try {
+    const cartItems = await prisma.cartItem.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        product: {
+          include: {
+            category: true,
+            images: {
+              orderBy: {
+                order: "asc",
+              },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  return cartItems.flatMap((cartItem) => {
-    const item = mapPersistedProductToCartLine(cartItem.product, cartItem.quantity);
-    return item.quantity > 0 ? [item] : [];
-  });
+    return cartItems.flatMap((cartItem) => {
+      const item = mapPersistedProductToCartLine(cartItem.product, cartItem.quantity);
+      return item.quantity > 0 ? [item] : [];
+    });
+  } catch (error) {
+    if (isPrismaSetupError(error)) {
+      console.warn("Authenticated cart is unavailable because the database is not ready yet.");
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 export async function getCurrentCartSnapshot(): Promise<CartSnapshot> {

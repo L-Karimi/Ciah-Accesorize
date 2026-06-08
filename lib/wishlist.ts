@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 import { catalogProducts, type CatalogProduct } from "@/lib/catalog";
+import { isPrismaSetupError } from "@/lib/prisma-errors";
 
 type WishlistProductRecord = Prisma.ProductGetPayload<{
   include: {
@@ -72,20 +73,29 @@ export async function getCurrentUserWishlistSlugs() {
     return [];
   }
 
-  const wishlists = await prisma.wishlist.findMany({
-    where: {
-      userId: session.user.id,
-    },
-    select: {
-      product: {
-        select: {
-          slug: true,
+  try {
+    const wishlists = await prisma.wishlist.findMany({
+      where: {
+        userId: session.user.id,
+      },
+      select: {
+        product: {
+          select: {
+            slug: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  return wishlists.map((wishlist) => wishlist.product.slug);
+    return wishlists.map((wishlist) => wishlist.product.slug);
+  } catch (error) {
+    if (isPrismaSetupError(error)) {
+      console.warn("Wishlist lookup skipped because the database is not ready yet.");
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 export async function getCurrentUserWishlistProducts() {
@@ -95,28 +105,37 @@ export async function getCurrentUserWishlistProducts() {
     return [];
   }
 
-  const wishlists = await prisma.wishlist.findMany({
-    where: {
-      userId: session.user.id,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      product: {
-        include: {
-          category: true,
-          images: {
-            orderBy: {
-              order: "asc",
+  try {
+    const wishlists = await prisma.wishlist.findMany({
+      where: {
+        userId: session.user.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        product: {
+          include: {
+            category: true,
+            images: {
+              orderBy: {
+                order: "asc",
+              },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  return wishlists.map((wishlist) => buildWishlistCatalogProduct(wishlist.product));
+    return wishlists.map((wishlist) => buildWishlistCatalogProduct(wishlist.product));
+  } catch (error) {
+    if (isPrismaSetupError(error)) {
+      console.warn("Wishlist page is using an empty state because the database is not ready yet.");
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 export async function ensurePersistedCatalogProduct(product: CatalogProduct) {
@@ -191,17 +210,25 @@ export async function ensurePersistedCatalogProduct(product: CatalogProduct) {
 }
 
 export async function findWishlistProductBySlug(productSlug: string) {
-  return prisma.product.findFirst({
-    where: {
-      slug: productSlug,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-    },
-  });
+  try {
+    return await prisma.product.findFirst({
+      where: {
+        slug: productSlug,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+      },
+    });
+  } catch (error) {
+    if (isPrismaSetupError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 export function getCatalogWishlistProduct(productSlug: string) {
