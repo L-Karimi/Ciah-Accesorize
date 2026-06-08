@@ -1,9 +1,68 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 import { catalogProducts, type CatalogProduct } from "@/lib/catalog";
 
+type WishlistProductRecord = Prisma.ProductGetPayload<{
+  include: {
+    category: true;
+    images: true;
+  };
+}>;
+
 function slugifyCategory(name: string) {
   return name.toLowerCase().replace(/\s+/g, "-");
+}
+
+function getCatalogProductBySlug(slug: string) {
+  return catalogProducts.find((product) => product.slug === slug);
+}
+
+function buildWishlistCatalogProduct(
+  wishlistProduct: WishlistProductRecord,
+) {
+  const localProduct = getCatalogProductBySlug(wishlistProduct.slug);
+  const fallbackName = wishlistProduct.name;
+  const fallbackImage = wishlistProduct.images[0]?.url ?? localProduct?.image ?? "/bags/hero-bag.svg";
+  const fallbackAlt = wishlistProduct.images[0]?.alt ?? fallbackName;
+  const fallbackSize = wishlistProduct.size ?? localProduct?.size ?? "Medium";
+  const fallbackColor = wishlistProduct.color as CatalogProduct["color"];
+  const fallbackMaterial = wishlistProduct.material as CatalogProduct["material"];
+  const fallbackGender = wishlistProduct.gender as CatalogProduct["gender"];
+
+  return {
+    id: wishlistProduct.id,
+    name: wishlistProduct.name,
+    slug: wishlistProduct.slug,
+    category: wishlistProduct.category.name,
+    price: wishlistProduct.price,
+    material: fallbackMaterial,
+    color: fallbackColor,
+    description:
+      wishlistProduct.description ?? localProduct?.description ?? "Saved wishlist product.",
+    accent: localProduct?.accent ?? "from-[#f3ece3] via-[#fbf7f1] to-[#ffffff]",
+    image: fallbackImage,
+    badge:
+      localProduct?.badge ?? (wishlistProduct.featured ? "Featured" : "Saved"),
+    gender: fallbackGender,
+    size: fallbackSize,
+    stock: wishlistProduct.stock,
+    featured: wishlistProduct.featured,
+    published: wishlistProduct.published,
+    createdAt: wishlistProduct.createdAt.toISOString().slice(0, 10),
+    images:
+      wishlistProduct.images.length > 0
+        ? wishlistProduct.images.map((image) => ({
+            src: image.url,
+            alt: image.alt ?? fallbackName,
+          }))
+        : localProduct?.images ?? [{ src: fallbackImage, alt: fallbackAlt }],
+    variantColors:
+      localProduct?.variantColors.length ? localProduct.variantColors : [fallbackColor],
+    variantSizes:
+      localProduct?.variantSizes.length ? localProduct.variantSizes : [fallbackSize],
+    reviews: localProduct?.reviews ?? [],
+  } satisfies CatalogProduct;
 }
 
 export async function getCurrentUserWishlistSlugs() {
@@ -57,45 +116,7 @@ export async function getCurrentUserWishlistProducts() {
     },
   });
 
-  return wishlists.map((wishlist) => {
-    const localProduct = catalogProducts.find(
-      (product) => product.slug === wishlist.product.slug,
-    );
-
-    if (localProduct) {
-      return localProduct;
-    }
-
-    return {
-      id: wishlist.product.id,
-      name: wishlist.product.name,
-      slug: wishlist.product.slug,
-      category: wishlist.product.category.name,
-      price: wishlist.product.price,
-      material: wishlist.product.material as CatalogProduct["material"],
-      color: wishlist.product.color as CatalogProduct["color"],
-      description: wishlist.product.description ?? "Saved wishlist product.",
-      accent: "from-[#f3ece3] via-[#fbf7f1] to-[#ffffff]",
-      image: wishlist.product.images[0]?.url ?? "/bags/hero-bag.svg",
-      badge: "Saved",
-      gender: wishlist.product.gender as CatalogProduct["gender"],
-      size: wishlist.product.size ?? "Medium",
-      stock: wishlist.product.stock,
-      featured: wishlist.product.featured,
-      published: wishlist.product.published,
-      createdAt: wishlist.product.createdAt.toISOString().slice(0, 10),
-      images:
-        wishlist.product.images.length > 0
-          ? wishlist.product.images.map((image) => ({
-              src: image.url,
-              alt: image.alt ?? wishlist.product.name,
-            }))
-          : [{ src: "/bags/hero-bag.svg", alt: wishlist.product.name }],
-      variantColors: [wishlist.product.color as CatalogProduct["color"]],
-      variantSizes: [wishlist.product.size ?? "Medium"],
-      reviews: [],
-    } satisfies CatalogProduct;
-  });
+  return wishlists.map((wishlist) => buildWishlistCatalogProduct(wishlist.product));
 }
 
 export async function ensurePersistedCatalogProduct(product: CatalogProduct) {
@@ -167,4 +188,22 @@ export async function ensurePersistedCatalogProduct(product: CatalogProduct) {
   }
 
   return persistedProduct;
+}
+
+export async function findWishlistProductBySlug(productSlug: string) {
+  return prisma.product.findFirst({
+    where: {
+      slug: productSlug,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+    },
+  });
+}
+
+export function getCatalogWishlistProduct(productSlug: string) {
+  return getCatalogProductBySlug(productSlug);
 }

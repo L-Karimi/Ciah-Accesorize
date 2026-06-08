@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Minus, Plus, ShoppingBag, Star } from "lucide-react";
+import { Check, Minus, Plus, Star } from "lucide-react";
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import type { CatalogProduct, ColorFilter } from "@/lib/catalog";
 import { WishlistToggle } from "@/components/storefront/wishlist-toggle";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ProductPurchasePanelProps {
@@ -23,7 +24,10 @@ export function ProductPurchasePanel({
   const [selectedColor, setSelectedColor] = useState<ColorFilter>(product.color);
   const [selectedSize, setSelectedSize] = useState(product.variantSizes[0] ?? product.size);
   const [quantity, setQuantity] = useState(1);
-  const [cartMessage, setCartMessage] = useState<string | null>(null);
+  const [cartMessage, setCartMessage] = useState<{
+    tone: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const stockLabel = useMemo(() => {
     if (product.stock <= 5) {
@@ -150,17 +154,30 @@ export function ProductPurchasePanel({
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            className="h-12 flex-1 rounded-full"
-            onClick={() =>
-              setCartMessage(
-                `Added ${quantity} ${product.name} in ${selectedColor}, ${selectedSize} to cart.`,
-              )
-            }
-          >
-            <ShoppingBag className="size-4" />
-            Add To Cart
-          </Button>
+          <AddToCartButton
+            productSlug={product.slug}
+            productName={product.name}
+            quantity={quantity}
+            className="h-12 flex-1"
+            label="Add to cart"
+            pendingLabel="Adding..."
+            onComplete={(result) => {
+              if (!result.success) {
+                setCartMessage({
+                  tone: "error",
+                  text: result.error ?? "We could not update your cart right now.",
+                });
+                return;
+              }
+
+              setCartMessage({
+                tone: "success",
+                text:
+                  result.message ??
+                  `Added ${quantity} ${product.name} to your cart.`,
+              });
+            }}
+          />
           <WishlistToggle
             productSlug={product.slug}
             productName={product.name}
@@ -170,8 +187,15 @@ export function ProductPurchasePanel({
         </div>
 
         {cartMessage ? (
-          <p className="rounded-[20px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            {cartMessage}
+          <p
+            className={cn(
+              "rounded-[20px] px-4 py-3 text-sm",
+              cartMessage.tone === "success"
+                ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border border-red-200 bg-red-50 text-red-700",
+            )}
+          >
+            {cartMessage.text}
           </p>
         ) : null}
       </div>

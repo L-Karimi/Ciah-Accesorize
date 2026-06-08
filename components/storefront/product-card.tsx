@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { WishlistToggle } from "@/components/storefront/wishlist-toggle";
 import type { ProductShowcaseItem } from "@/lib/site";
@@ -68,7 +69,11 @@ export function ProductCard({
         </div>
       </CardContent>
       <CardFooter>
-        <Button className="h-11 flex-1 rounded-full">Add to cart</Button>
+        <AddToCartButton
+          productSlug={item.slug}
+          productName={item.name}
+          className="flex-1"
+        />
         <Link
           href={`/products/${item.slug}`}
           className={buttonVariants({

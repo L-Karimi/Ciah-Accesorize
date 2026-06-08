@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+import { CartMergeOnAuth } from "@/components/cart/cart-merge-on-auth";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { getServerAuthSession } from "@/lib/auth";
+import { CART_COOKIE_NAME } from "@/lib/cart";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
@@ -36,17 +40,24 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerAuthSession();
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-background text-foreground">
+        <CartMergeOnAuth
+          cookieName={CART_COOKIE_NAME}
+          isAuthenticated={Boolean(session?.user?.id)}
+        />
+        <Toaster richColors position="top-right" />
         <div className="flex min-h-full flex-col">
           <SiteHeader />
           <div className="flex-1">{children}</div>

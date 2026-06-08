@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 const adminRoutes = ["/admin", "/dashboard"];
-const protectedRoutes = ["/account", "/orders", "/wishlist", "/cart"];
+const protectedRoutes = ["/account", "/orders", "/wishlist"];
 const guestOnlyRoutes = ["/auth/login", "/auth/register"];
 
 export async function proxy(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function proxy(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
   const isProtectedRoute = protectedRoutes.some((route) =>
@@ -23,7 +23,9 @@ export async function proxy(request: NextRequest) {
   );
 
   if (!token && (isAdminRoute || isProtectedRoute)) {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+    const loginUrl = new URL("/auth/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", `${pathname}${search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
   if (isAdminRoute && token?.role !== "ADMIN") {

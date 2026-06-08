@@ -1,21 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useState } from "react";
 import { ShoppingBag, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { sampleCartItems } from "@/lib/site";
+import type { CartSnapshot } from "@/lib/cart";
+import { CartLineItem } from "@/components/cart/cart-line-item";
+import { Button, buttonVariants } from "@/components/ui/button";
 
-export function CartDrawer() {
+interface CartDrawerProps {
+  initialCart: CartSnapshot;
+}
+
+export function CartDrawer({ initialCart }: CartDrawerProps) {
   const [open, setOpen] = useState(false);
-
-  const subtotal = useMemo(
-    () =>
-      sampleCartItems.reduce(
-        (total, item) => total + item.price * item.quantity,
-        0,
-      ),
-    [],
-  );
 
   return (
     <>
@@ -28,7 +25,7 @@ export function CartDrawer() {
         <ShoppingBag className="size-4" />
         Cart
         <span className="inline-flex size-6 items-center justify-center rounded-full bg-[#111111] text-xs text-white">
-          {sampleCartItems.length}
+          {initialCart.summary.itemCount}
         </span>
       </Button>
 
@@ -42,12 +39,16 @@ export function CartDrawer() {
             className="ml-auto flex h-full w-full max-w-md flex-col bg-[#fffaf5] p-6 shadow-[0_18px_90px_rgba(0,0,0,0.24)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm uppercase tracking-[0.24em] text-[#8B5E3C]">
                   Cart Drawer
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">Your selection</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {initialCart.summary.itemCount} item
+                  {initialCart.summary.itemCount === 1 ? "" : "s"} ready for checkout.
+                </p>
               </div>
               <button
                 type="button"
@@ -59,40 +60,66 @@ export function CartDrawer() {
               </button>
             </div>
 
-            <div className="mt-8 flex-1 space-y-4 overflow-auto">
-              {sampleCartItems.map((item) => (
-                <div
-                  key={item.name}
-                  className="flex items-center gap-4 rounded-[24px] border border-border/70 bg-white p-4"
-                >
-                  <div
-                    className={`h-20 w-18 min-w-18 rounded-[20px] bg-gradient-to-br ${item.accent}`}
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-medium text-foreground">{item.name}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Qty {item.quantity}
-                    </p>
-                  </div>
-                  <p className="font-semibold text-foreground">
-                    KES {(item.price * item.quantity).toLocaleString()}
+            <div className="mt-8 flex-1 overflow-auto">
+              {initialCart.items.length === 0 ? (
+                <div className="rounded-[28px] border border-dashed border-border/80 bg-white px-5 py-8 text-center">
+                  <p className="text-lg font-semibold text-foreground">Your cart is empty</p>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                    Add handbags, tote bags, office bags, or travel pieces to review
+                    them here.
                   </p>
+                  <Link
+                    href="/products"
+                    onClick={() => setOpen(false)}
+                    className={buttonVariants({
+                      className: "mt-5 h-11 rounded-full px-5",
+                    })}
+                  >
+                    Explore products
+                  </Link>
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-4">
+                  {initialCart.items.map((item) => (
+                    <CartLineItem key={item.productSlug} item={item} compact />
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="mt-6 space-y-4 rounded-[28px] border border-border/80 bg-white p-5">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Subtotal</span>
                 <span className="font-semibold text-foreground">
-                  KES {subtotal.toLocaleString()}
+                  KES {initialCart.summary.subtotal.toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Delivery estimate</span>
-                <span>Free over KES 5,000</span>
+                <span>Shipping</span>
+                <span>
+                  {initialCart.summary.shipping === 0
+                    ? "Free"
+                    : `KES ${initialCart.summary.shipping.toLocaleString()}`}
+                </span>
               </div>
-              <Button className="h-11 w-full rounded-full">Proceed to checkout</Button>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Total</span>
+                <span className="font-semibold text-foreground">
+                  KES {initialCart.summary.total.toLocaleString()}
+                </span>
+              </div>
+              <Link
+                href="/cart"
+                onClick={() => setOpen(false)}
+                className={buttonVariants({ className: "h-11 w-full rounded-full" })}
+              >
+                View cart
+              </Link>
+              {!initialCart.isAuthenticated ? (
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Shopping as a guest. Your cart will merge automatically after sign in.
+                </p>
+              ) : null}
             </div>
           </aside>
         </div>

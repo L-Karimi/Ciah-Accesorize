@@ -3,9 +3,12 @@ import { Navigation } from "@/components/layout/navigation";
 import { SearchBar } from "@/components/layout/search-bar";
 import { CartDrawer } from "@/components/layout/cart-drawer";
 import { MobileMenu } from "@/components/layout/mobile-menu";
+import { getCurrentCartSnapshot } from "@/lib/cart";
 import { navItems, siteConfig } from "@/lib/site";
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const cart = await getCurrentCartSnapshot();
+
   return (
     <header className="sticky top-0 z-40 border-b border-black/5 bg-[#fbf6f0]/85 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
@@ -27,7 +30,7 @@ export function SiteHeader() {
         </div>
 
         <div className="ml-auto flex items-center gap-3">
-          <CartDrawer />
+          <CartDrawer initialCart={cart} />
           <MobileMenu items={navItems} />
         </div>
       </div>

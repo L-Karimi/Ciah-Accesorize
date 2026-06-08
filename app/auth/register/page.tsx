@@ -6,7 +6,27 @@ export const metadata: Metadata = {
   description: "Create your Ciah Accessorize account",
 };
 
-export default function RegisterPage() {
+function getSafeCallbackUrl(callbackUrl?: string) {
+  if (!callbackUrl || !callbackUrl.startsWith("/") || callbackUrl.startsWith("//")) {
+    return undefined;
+  }
+
+  return callbackUrl;
+}
+
+interface RegisterPageProps {
+  searchParams?: Promise<{
+    callbackUrl?: string | string[];
+  }>;
+}
+
+export default async function RegisterPage({ searchParams }: RegisterPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const callbackUrl =
+    typeof params?.callbackUrl === "string"
+      ? getSafeCallbackUrl(params.callbackUrl)
+      : undefined;
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
@@ -17,7 +37,7 @@ export default function RegisterPage() {
           <p className="text-center text-gray-600 mb-8">
             Join Ciah Accessorize today
           </p>
-          <RegisterForm />
+          <RegisterForm callbackUrl={callbackUrl} />
         </div>
       </div>
     </div>

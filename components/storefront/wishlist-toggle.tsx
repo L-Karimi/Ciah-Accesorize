@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Heart } from "lucide-react";
 import { addProductToWishlist, removeProductFromWishlist } from "@/lib/actions/wishlist";
@@ -22,14 +22,18 @@ export function WishlistToggle({
   isAuthenticated = false,
   compact = false,
 }: WishlistToggleProps) {
+  const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [wishlisted, setWishlisted] = useState(initialWishlisted);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const callbackUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
+
   const handleClick = () => {
     if (!isAuthenticated) {
-      router.push("/auth/login");
+      router.push(`/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
       return;
     }
 
@@ -38,7 +42,7 @@ export function WishlistToggle({
       const result = await action(productSlug);
 
       if (result.requiresLogin) {
-        router.push("/auth/login");
+        router.push(`/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
         return;
       }
 

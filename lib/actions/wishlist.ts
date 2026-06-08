@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { getServerAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { catalogProducts } from "@/lib/catalog";
-import { ensurePersistedCatalogProduct } from "@/lib/wishlist";
+import {
+  ensurePersistedCatalogProduct,
+  findWishlistProductBySlug,
+  getCatalogWishlistProduct,
+} from "@/lib/wishlist";
 
 function revalidateWishlistSurfaces(productSlug: string) {
   revalidatePath("/");
@@ -24,17 +27,23 @@ export async function addProductToWishlist(productSlug: string) {
     };
   }
 
-  const product = catalogProducts.find((item) => item.slug === productSlug);
-
-  if (!product) {
-    return {
-      success: false,
-      error: "Product not found.",
-    };
-  }
-
   try {
-    const persistedProduct = await ensurePersistedCatalogProduct(product);
+    let persistedProduct = await findWishlistProductBySlug(productSlug);
+
+    if (!persistedProduct) {
+      const catalogProduct = getCatalogWishlistProduct(productSlug);
+
+      if (catalogProduct) {
+        persistedProduct = await ensurePersistedCatalogProduct(catalogProduct);
+      }
+    }
+
+    if (!persistedProduct) {
+      return {
+        success: false,
+        error: "Product not found.",
+      };
+    }
 
     await prisma.wishlist.upsert({
       where: {
@@ -50,11 +59,11 @@ export async function addProductToWishlist(productSlug: string) {
       },
     });
 
-    revalidateWishlistSurfaces(product.slug);
+    revalidateWishlistSurfaces(persistedProduct.slug);
 
     return {
       success: true,
-      message: `${product.name} saved to your wishlist.`,
+      message: `${persistedProduct.name} saved to your wishlist.`,
     };
   } catch (error) {
     console.error("Add wishlist error:", error);
@@ -77,14 +86,7 @@ export async function removeProductFromWishlist(productSlug: string) {
   }
 
   try {
-    const persistedProduct = await prisma.product.findUnique({
-      where: {
-        slug: productSlug,
-      },
-      select: {
-        id: true,
-      },
-    });
+    const persistedProduct = await findWishlistProductBySlug(productSlug);
 
     if (!persistedProduct) {
       return {

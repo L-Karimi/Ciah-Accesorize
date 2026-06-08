@@ -14,7 +14,11 @@ import { Input } from "@/components/ui/input";
 
 type RegisterFormValues = InferOutput<typeof registerSchema>;
 
-export function RegisterForm() {
+interface RegisterFormProps {
+  callbackUrl?: string;
+}
+
+export function RegisterForm({ callbackUrl }: RegisterFormProps) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const {
@@ -50,14 +54,19 @@ export function RegisterForm() {
       email: values.email.toLowerCase(),
       password: values.password,
       redirect: false,
+      callbackUrl: callbackUrl ?? "/account",
     });
 
     if (!signInResult || signInResult.error) {
-      router.push("/auth/login");
+      router.push(
+        callbackUrl
+          ? `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+          : "/auth/login",
+      );
       return;
     }
 
-    router.push("/account");
+    router.push(signInResult.url ?? callbackUrl ?? "/account");
     router.refresh();
   });
 
@@ -148,7 +157,11 @@ export function RegisterForm() {
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link
-          href="/auth/login"
+          href={
+            callbackUrl
+              ? `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+              : "/auth/login"
+          }
           className="font-medium text-[#8B5E3C] transition-colors hover:text-[#6f492e]"
         >
           Sign in

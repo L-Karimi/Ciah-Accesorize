@@ -13,7 +13,11 @@ import { Input } from "@/components/ui/input";
 
 type LoginFormValues = InferOutput<typeof loginSchema>;
 
-export function LoginForm() {
+interface LoginFormProps {
+  callbackUrl?: string;
+}
+
+export function LoginForm({ callbackUrl }: LoginFormProps) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const {
@@ -35,6 +39,7 @@ export function LoginForm() {
       email: values.email.toLowerCase(),
       password: values.password,
       redirect: false,
+      callbackUrl: callbackUrl ?? "/account",
     });
 
     if (!result || result.error) {
@@ -42,7 +47,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/account");
+    router.push(result.url ?? callbackUrl ?? "/account");
     router.refresh();
   });
 
@@ -105,7 +110,11 @@ export function LoginForm() {
       <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link
-          href="/auth/register"
+          href={
+            callbackUrl
+              ? `/auth/register?callbackUrl=${encodeURIComponent(callbackUrl)}`
+              : "/auth/register"
+          }
           className="font-medium text-[#8B5E3C] transition-colors hover:text-[#6f492e]"
         >
           Sign up

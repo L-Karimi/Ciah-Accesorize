@@ -64,6 +64,7 @@ export const siteConfig = {
 export const navItems: NavItem[] = [
   { href: "/", label: "Home" },
   { href: "/products", label: "Shop" },
+  { href: "/wishlist", label: "Wishlist" },
   { href: "/#featured-products", label: "Featured" },
   { href: "/#new-arrivals", label: "New Arrivals" },
   { href: "/#categories", label: "Categories" },
