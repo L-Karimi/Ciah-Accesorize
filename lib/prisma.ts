@@ -13,13 +13,37 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set.");
 }
 
+function getDatabaseConfig(databaseUrl: string) {
+  const url = new URL(databaseUrl);
+  const schema = url.searchParams.get("schema") ?? undefined;
+
+  if (!schema) {
+    return {
+      connectionString: databaseUrl,
+      schema,
+    };
+  }
+
+  url.searchParams.delete("schema");
+
+  return {
+    connectionString: url.toString(),
+    schema,
+  };
+}
+
+const databaseConfig = getDatabaseConfig(connectionString);
+
 const pool =
   globalForPrisma.prismaPool ??
   new Pool({
-    connectionString,
+    connectionString: databaseConfig.connectionString,
   });
 
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaPg(
+  pool,
+  databaseConfig.schema ? { schema: databaseConfig.schema } : undefined,
+);
 
 export const prisma =
   globalForPrisma.prisma ??

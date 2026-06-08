@@ -2,8 +2,12 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import { hash } from "bcryptjs";
-import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
+import {
+  getDatabaseSetupErrorMessage,
+  isPrismaSetupError,
+} from "@/lib/prisma-errors";
+import { prisma } from "@/lib/prisma";
 import {
   flatten,
   safeParse,
@@ -80,7 +84,9 @@ export async function register(input: RegisterInput) {
     console.error("Registration error:", error);
     return {
       success: false,
-      error: "We could not create your account right now.",
+      error: isPrismaSetupError(error)
+        ? getDatabaseSetupErrorMessage("create your account")
+        : "We could not create your account right now.",
     };
   }
 }
@@ -134,7 +140,9 @@ export async function requestPasswordReset(input: ForgotPasswordInput) {
     console.error("Forgot password error:", error);
     return {
       success: false,
-      error: "We could not process that request right now.",
+      error: isPrismaSetupError(error)
+        ? getDatabaseSetupErrorMessage("process your password reset request")
+        : "We could not process that request right now.",
     };
   }
 }
@@ -177,7 +185,9 @@ export async function updateProfile(input: UpdateProfileInput) {
     console.error("Update profile error:", error);
     return {
       success: false,
-      error: "We could not update your profile right now.",
+      error: isPrismaSetupError(error)
+        ? getDatabaseSetupErrorMessage("update your profile")
+        : "We could not update your profile right now.",
     };
   }
 }

@@ -82,6 +82,17 @@ export default async function AccountPage() {
               >
                 View Wishlist
               </Link>
+              {session.user.role === "ADMIN" ? (
+                <Link
+                  href="/dashboard"
+                  className={buttonVariants({
+                    variant: "outline",
+                    className: "h-11 px-5",
+                  })}
+                >
+                  Open Dashboard
+                </Link>
+              ) : null}
             </div>
           </div>
         </section>
