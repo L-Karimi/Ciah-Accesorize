@@ -43,7 +43,7 @@ const steps = [
   },
   {
     label: "Payment",
-    description: "Create a pending order for M-Pesa processing.",
+    description: "Trigger the M-Pesa STK push for this order.",
     icon: CreditCard,
   },
 ] as const;
@@ -268,15 +268,15 @@ export function CheckoutForm({ cart, defaultValues }: CheckoutFormProps) {
                 </p>
                 <h2 className="mt-3 text-xl font-semibold text-foreground">M-Pesa</h2>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  This step creates a pending order and pending payment record. M-Pesa
-                  collection will be connected in the next milestone.
+                  This step creates your order, stores a pending payment record, and
+                  sends a Safaricom STK push to the phone number you entered.
                 </p>
               </div>
               <div className="rounded-[28px] border border-border/70 bg-[#fcfaf7] p-5">
                 <p className="text-sm font-medium text-foreground">What happens next</p>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  We will save your order details, keep payment status as pending, and
-                  clear the cart so the order is ready for payment integration.
+                  Approve the M-Pesa prompt on your phone, then use the status screen
+                  to verify payment or request another STK push if needed.
                 </p>
               </div>
             </div>
@@ -304,7 +304,7 @@ export function CheckoutForm({ cart, defaultValues }: CheckoutFormProps) {
               </Button>
             ) : (
               <Button type="submit" className="h-11 rounded-full px-5" disabled={isSubmitting}>
-                {isSubmitting ? "Creating order..." : "Create pending order"}
+                {isSubmitting ? "Starting payment..." : "Place order and pay"}
               </Button>
             )}
           </div>

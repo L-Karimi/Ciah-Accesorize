@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth-guards";
 import { getCurrentCartSnapshot } from "@/lib/cart";
 import { buildShippingAddressSnapshot, splitCustomerName } from "@/lib/checkout";
+import { initiateMpesaPaymentForOrder } from "@/lib/mpesa-payments";
 import { checkoutSchema } from "@/lib/validations/checkout";
 import { flatten, safeParse, type InferOutput } from "valibot";
 
@@ -159,6 +160,8 @@ export async function createPendingOrder(input: CheckoutInput) {
       return createdOrder;
     });
 
+    const paymentResult = await initiateMpesaPaymentForOrder(order.id);
+
     revalidateCheckoutSurfaces();
 
     return {
@@ -166,6 +169,12 @@ export async function createPendingOrder(input: CheckoutInput) {
       orderId: order.id,
       total: order.total,
       createdAt: order.createdAt.toISOString(),
+      paymentInitiated: paymentResult.success,
+      paymentError: paymentResult.success ? null : paymentResult.error,
+      checkoutRequestId:
+        paymentResult.success && paymentResult.checkoutRequestId
+          ? paymentResult.checkoutRequestId
+          : null,
     };
   } catch (error) {
     console.error("Create pending order error:", error);

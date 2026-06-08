@@ -246,11 +246,21 @@ model Payment {
   method          String        // "MPESA", "CARD", etc
   transactionId   String?
   phoneNumber     String?
+  checkoutRequestId String?     @unique
+  merchantRequestId String?
+  mpesaReceiptNumber String?
+  transactionStatus String?
+  resultCode      String?
+  resultDescription String?
+  callbackPayload Json?
+  retryCount      Int           @default(0)
+  lastRetryAt     DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@index([orderId])
   @@index([transactionId])
+  @@index([checkoutRequestId])
   @@map("payments")
 }
 

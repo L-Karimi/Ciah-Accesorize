@@ -14,7 +14,7 @@ import { siteConfig } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Checkout | Ciah Accessorize",
   description:
-    "Complete your Ciah Accessorize checkout with customer details, delivery address, order summary, and pending payment setup.",
+    "Complete your Ciah Accessorize checkout with customer details, delivery address, order summary, and live M-Pesa payment initiation.",
   keywords: [...siteConfig.keywords, "Checkout", "M-Pesa Checkout"],
   alternates: {
     canonical: "/checkout",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `${siteConfig.name} | Checkout`,
     description:
-      "Review your order, confirm delivery details, and create a pending Ciah Accessorize order.",
+      "Review your order, confirm delivery details, and trigger your Ciah Accessorize M-Pesa checkout.",
     url: `${siteConfig.url}/checkout`,
     type: "website",
   },
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${siteConfig.name} | Checkout`,
     description:
-      "Finalize your selected bags and accessories with delivery details and pending payment setup.",
+      "Finalize your selected bags and accessories with delivery details and M-Pesa payment initiation.",
   },
 };
 
@@ -88,11 +88,11 @@ export default async function CheckoutPage() {
                 Checkout
               </p>
               <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
-                Finalize delivery details and create your pending order.
+                Finalize delivery details and trigger your M-Pesa payment.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-8 text-white/72">
                 We will save your customer information, delivery address, order
-                summary, and pending payment setup for the next milestone.
+                summary, and immediately send a Safaricom STK push for payment.
               </p>
             </div>
 
@@ -102,10 +102,9 @@ export default async function CheckoutPage() {
                   <div className="inline-flex size-12 items-center justify-center rounded-full bg-white/10 text-[#d6c2a6]">
                     <CreditCard className="size-5" />
                   </div>
-                  <CardTitle className="mt-4 text-white">Pending payment</CardTitle>
+                  <CardTitle className="mt-4 text-white">Live M-Pesa checkout</CardTitle>
                   <CardDescription className="text-white/68">
-                    Order and payment records will both stay pending until M-Pesa is
-                    connected.
+                    Your order stays pending until Safaricom confirms the STK payment.
                   </CardDescription>
                 </CardHeader>
               </Card>

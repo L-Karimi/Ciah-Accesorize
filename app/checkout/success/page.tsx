@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2, Clock3 } from "lucide-react";
+import { CheckCircle2, Clock3, Receipt, Smartphone } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PaymentStatusActions } from "@/components/checkout/payment-status-actions";
 import { requireAuth } from "@/lib/auth-guards";
+import { getMpesaMaxRetries } from "@/lib/mpesa";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
-  title: "Order Created | Ciah Accessorize",
-  description: "Your Ciah Accessorize order has been created and is waiting for payment.",
+  title: "Payment Status | Ciah Accessorize",
+  description: "Track your Ciah Accessorize M-Pesa payment and order confirmation status.",
 };
 
 interface CheckoutSuccessPageProps {
@@ -19,24 +22,89 @@ interface CheckoutSuccessPageProps {
 export default async function CheckoutSuccessPage({
   searchParams,
 }: CheckoutSuccessPageProps) {
-  await requireAuth("/checkout/success");
+  const session = await requireAuth("/checkout/success");
   const params = searchParams ? await searchParams : undefined;
   const orderId = typeof params?.orderId === "string" ? params.orderId : undefined;
+  const order = orderId
+    ? await prisma.order.findFirst({
+        where: {
+          id: orderId,
+          userId: session.user.id,
+        },
+        select: {
+          id: true,
+          status: true,
+          total: true,
+          paymentStatus: true,
+          createdAt: true,
+          payment: {
+            select: {
+              status: true,
+              phoneNumber: true,
+              checkoutRequestId: true,
+              mpesaReceiptNumber: true,
+              transactionStatus: true,
+              resultDescription: true,
+              retryCount: true,
+            },
+          },
+        },
+      })
+    : null;
+  const payment = order?.payment;
+  const paymentStatusLabel = payment?.status ?? order?.paymentStatus ?? "PENDING";
+  const transactionStatusLabel = payment?.transactionStatus ?? "PENDING";
+  const canRetry =
+    Boolean(order?.id) &&
+    paymentStatusLabel !== "COMPLETED" &&
+    (payment?.retryCount ?? 0) < getMpesaMaxRetries();
+  const canVerify = Boolean(order?.id) && paymentStatusLabel !== "COMPLETED";
+  const maxRetries = getMpesaMaxRetries();
+
+  if (!orderId || !order) {
+    return (
+      <main className="flex min-h-screen bg-[#f6f1ea] px-4 py-10">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+          <Card className="bg-white">
+            <CardHeader>
+              <CardTitle>Order not found</CardTitle>
+              <CardDescription>
+                We could not find that checkout session for your account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-3">
+              <Link href="/cart" className={buttonVariants({ className: "h-11 px-5" })}>
+                Back to cart
+              </Link>
+              <Link
+                href="/account"
+                className={buttonVariants({
+                  variant: "outline",
+                  className: "h-11 px-5",
+                })}
+              >
+                View account
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen bg-[#f6f1ea] px-4 py-10">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <section className="rounded-[32px] bg-[#111111] px-8 py-10 text-white shadow-[0_24px_80px_rgba(0,0,0,0.18)]">
           <p className="text-sm uppercase tracking-[0.28em] text-[#d6c2a6]">
-            Checkout Complete
+            Payment Status
           </p>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-            Your pending order has been created.
+            Your order is waiting on M-Pesa confirmation.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
-            We captured your customer information, delivery address, order items,
-            and a pending M-Pesa payment record. Payment collection comes in the next
-            milestone.
+            We created your order, triggered the Safaricom STK push, and will
+            confirm the order automatically when payment clears.
           </p>
         </section>
 
@@ -48,7 +116,7 @@ export default async function CheckoutSuccessPage({
               </div>
               <CardTitle className="mt-4">Order saved</CardTitle>
               <CardDescription>
-                {orderId ? `Reference: ${orderId}` : "Your order reference is now available."}
+                Reference: {order.id}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -57,17 +125,88 @@ export default async function CheckoutSuccessPage({
               <div className="inline-flex size-12 items-center justify-center rounded-full bg-[#fff4e6] text-[#8B5E3C]">
                 <Clock3 className="size-5" />
               </div>
-              <CardTitle className="mt-4">Payment still pending</CardTitle>
+              <CardTitle className="mt-4">Payment lifecycle</CardTitle>
               <CardDescription>
-                The order is ready for M-Pesa activation once the payment milestone is
-                implemented.
+                Order status: {order.status}. Payment status: {paymentStatusLabel}.
               </CardDescription>
             </CardHeader>
           </Card>
         </section>
 
         <Card className="bg-white">
+          <CardHeader>
+            <CardTitle>Safaricom M-Pesa details</CardTitle>
+            <CardDescription>
+              Use the tools below if the prompt has not arrived yet or if you want a fresh status check.
+            </CardDescription>
+          </CardHeader>
           <CardContent className="flex flex-wrap gap-3 pt-6">
+            <div className="grid w-full gap-4 md:grid-cols-2">
+              <div className="rounded-[24px] border border-border/70 bg-[#fcfaf7] p-5">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex size-10 items-center justify-center rounded-full bg-[#f3ece3] text-[#8B5E3C]">
+                    <Smartphone className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">STK Push</p>
+                    <p className="text-sm text-muted-foreground">
+                      {payment?.phoneNumber ?? "Phone number unavailable"}
+                    </p>
+                  </div>
+                </div>
+                <dl className="mt-4 space-y-3 text-sm text-muted-foreground">
+                  <div>
+                    <dt className="font-medium text-foreground">CheckoutRequestID</dt>
+                    <dd className="break-all">{payment?.checkoutRequestId ?? "Not available yet"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium text-foreground">Transaction status</dt>
+                    <dd>{transactionStatusLabel}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="rounded-[24px] border border-border/70 bg-[#fcfaf7] p-5">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex size-10 items-center justify-center rounded-full bg-[#eef4ff] text-sky-700">
+                    <Receipt className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Verification</p>
+                    <p className="text-sm text-muted-foreground">
+                      Receipt and callback information
+                    </p>
+                  </div>
+                </div>
+                <dl className="mt-4 space-y-3 text-sm text-muted-foreground">
+                  <div>
+                    <dt className="font-medium text-foreground">M-Pesa receipt</dt>
+                    <dd>{payment?.mpesaReceiptNumber ?? "Waiting for callback"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium text-foreground">Retry attempts</dt>
+                    <dd>
+                      {payment?.retryCount ?? 0} of {maxRetries}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
+            {payment?.resultDescription ? (
+              <div className="w-full rounded-[24px] border border-border/70 bg-[#fcfaf7] px-5 py-4 text-sm text-muted-foreground">
+                {payment.resultDescription}
+              </div>
+            ) : null}
+
+            <div className="w-full">
+              <PaymentStatusActions
+                orderId={order.id}
+                canRetry={canRetry}
+                canVerify={canVerify}
+              />
+            </div>
+
             <Link href="/products" className={buttonVariants({ className: "h-11 px-5" })}>
               Continue shopping
             </Link>
@@ -80,6 +219,18 @@ export default async function CheckoutSuccessPage({
             >
               Back to account
             </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white">
+          <CardContent className="pt-6 text-sm leading-7 text-muted-foreground">
+            Total: KES {order.total.toLocaleString()}. Created on{" "}
+            {order.createdAt.toLocaleString("en-KE", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+            . Your order will move to <span className="font-medium text-foreground">CONFIRMED</span>{" "}
+            automatically after successful payment verification.
           </CardContent>
         </Card>
       </div>
