@@ -7,6 +7,7 @@ import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import type { InferOutput } from "valibot";
+import { mergeGuestCartAfterLogin } from "@/lib/actions/cart";
 import { register as registerUser } from "@/lib/actions/auth";
 import { registerSchema } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,7 @@ export function RegisterForm({ callbackUrl }: RegisterFormProps) {
       return;
     }
 
+    await mergeGuestCartAfterLogin();
     router.push(signInResult.url ?? callbackUrl ?? "/account");
     router.refresh();
   });

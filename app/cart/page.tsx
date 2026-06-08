@@ -177,15 +177,14 @@ export default async function CartPage() {
                       KES {cart.summary.total.toLocaleString()}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    disabled
+                  <Link
+                    href="/checkout"
                     className={buttonVariants({
-                      className: "h-11 w-full rounded-full opacity-100",
+                      className: "h-11 w-full rounded-full",
                     })}
                   >
-                    Checkout comes next
-                  </button>
+                    Proceed to checkout
+                  </Link>
                   {!cart.isAuthenticated ? (
                     <p className="text-sm leading-6 text-muted-foreground">
                       Sign in when you are ready. Your guest cart will merge into your

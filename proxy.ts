@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 const adminRoutes = ["/admin", "/dashboard"];
-const protectedRoutes = ["/account", "/orders", "/wishlist"];
+const protectedRoutes = ["/account", "/orders", "/wishlist", "/checkout"];
 const guestOnlyRoutes = ["/auth/login", "/auth/register"];
 
 export async function proxy(request: NextRequest) {

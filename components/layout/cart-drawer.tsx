@@ -108,10 +108,22 @@ export function CartDrawer({ initialCart }: CartDrawerProps) {
                   KES {initialCart.summary.total.toLocaleString()}
                 </span>
               </div>
+              {initialCart.items.length > 0 ? (
+                <Link
+                  href="/checkout"
+                  onClick={() => setOpen(false)}
+                  className={buttonVariants({ className: "h-11 w-full rounded-full" })}
+                >
+                  Proceed to checkout
+                </Link>
+              ) : null}
               <Link
                 href="/cart"
                 onClick={() => setOpen(false)}
-                className={buttonVariants({ className: "h-11 w-full rounded-full" })}
+                className={buttonVariants({
+                  variant: initialCart.items.length > 0 ? "outline" : "default",
+                  className: "h-11 w-full rounded-full",
+                })}
               >
                 View cart
               </Link>
