@@ -1,14 +1,17 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { flatten, safeParse, type InferOutput } from "valibot";
 import { requireAdmin } from "@/lib/auth-guards";
+import { uploadProductImage } from "@/lib/cloudinary";
 import {
   getDatabaseSetupErrorMessage,
   isPrismaSetupError,
 } from "@/lib/prisma-errors";
 import { prisma } from "@/lib/prisma";
+import { slugify } from "@/lib/slug";
 import {
   adminCategorySchema,
   adminInventorySchema,
@@ -22,6 +25,11 @@ type AdminCategoryInput = InferOutput<typeof adminCategorySchema>;
 type AdminProductInput = InferOutput<typeof adminProductSchema>;
 type AdminInventoryInput = InferOutput<typeof adminInventorySchema>;
 type AdminOrderInput = InferOutput<typeof adminOrderSchema>;
+
+export interface AdminActionResult {
+  success: boolean;
+  message: string;
+}
 
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -65,21 +73,6 @@ function flattenValidationError(issues: ReturnType<typeof flatten>): string {
   return "Please review the form and try again.";
 }
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function parseImageUrls(rawValue: string) {
-  return rawValue
-    .split(/\r?\n|,/)
-    .map((value) => value.trim())
-    .filter(Boolean);
-}
-
 function isValidOrderStatus(value: string): value is (typeof orderStatusOptions)[number] {
   return orderStatusOptions.includes(value as (typeof orderStatusOptions)[number]);
 }
@@ -98,6 +91,8 @@ function revalidateAdminSurfaces() {
   revalidatePath("/dashboard/inventory");
   revalidatePath("/dashboard/orders");
   revalidatePath("/dashboard/customers");
+  revalidatePath("/");
+  revalidatePath("/products");
 }
 
 function redirectWithFeedback(path: string, params: Record<string, string>): never {
@@ -117,6 +112,40 @@ function handleAdminActionError(path: string, error: unknown, feature: string): 
   redirectWithFeedback(path, {
     error: `We could not ${feature} right now.`,
   });
+}
+
+function normalizeStringList(values: FormDataEntryValue[]) {
+  return values.map((value) => normalizeText(value)).filter(Boolean);
+}
+
+function normalizeFileList(values: FormDataEntryValue[]) {
+  return values.filter((value): value is File => value instanceof File && value.size > 0);
+}
+
+function getProductActionErrorMessage(error: unknown, feature: string) {
+  if (isPrismaSetupError(error)) {
+    return getDatabaseSetupErrorMessage(feature);
+  }
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      return "That product slug already exists. Use a different slug and try again.";
+    }
+
+    if (error.code === "P2003") {
+      return "Choose a valid category before saving this product.";
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return `We could not ${feature} right now.`;
+}
+
+async function uploadProductImages(files: File[]) {
+  return Promise.all(files.map((file) => uploadProductImage(file)));
 }
 
 export async function createCategoryAction(formData: FormData) {
@@ -267,9 +296,8 @@ export async function deleteCategoryAction(formData: FormData) {
   }
 }
 
-export async function createProductAction(formData: FormData) {
+export async function createProductAction(formData: FormData): Promise<AdminActionResult> {
   await requireAdmin();
-  const path = "/dashboard/products";
 
   const parsed = safeParse(adminProductSchema, {
     name: normalizeText(formData.get("name")),
@@ -285,19 +313,30 @@ export async function createProductAction(formData: FormData) {
     stock: normalizeNumber(formData.get("stock")),
     featured: normalizeBoolean(formData.get("featured")),
     published: normalizeBoolean(formData.get("published")),
-    imageUrls: normalizeOptionalText(formData.get("imageUrls")),
+    existingImageUrls: normalizeStringList(formData.getAll("existingImageUrls")),
   });
+  const newImages = normalizeFileList(formData.getAll("newImages"));
 
   if (!parsed.success) {
-    redirectWithFeedback(path, {
-      error: flattenValidationError(flatten(parsed.issues)),
-    });
+    return {
+      success: false,
+      message: flattenValidationError(flatten(parsed.issues)),
+    };
   }
 
   const output = parsed.output as AdminProductInput;
-  const imageUrls = parseImageUrls(output.imageUrls);
+
+  if (output.existingImageUrls.length + newImages.length === 0) {
+    return {
+      success: false,
+      message: "Add at least one product image before saving.",
+    };
+  }
 
   try {
+    const uploadedImageUrls = await uploadProductImages(newImages);
+    const imageUrls = [...output.existingImageUrls, ...uploadedImageUrls];
+
     await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
@@ -330,23 +369,33 @@ export async function createProductAction(formData: FormData) {
     });
 
     revalidateAdminSurfaces();
-    redirectWithFeedback(path, {
-      status: "Product created successfully.",
-    });
+    revalidatePath(`/products/${output.slug}`);
+
+    return {
+      success: true,
+      message: output.published
+        ? "Product created and published successfully."
+        : "Draft product created successfully.",
+    };
   } catch (error) {
-    handleAdminActionError(path, error, "create the product");
+    console.error("Admin action error (create the product):", error);
+
+    return {
+      success: false,
+      message: getProductActionErrorMessage(error, "create the product"),
+    };
   }
 }
 
-export async function updateProductAction(formData: FormData) {
+export async function updateProductAction(formData: FormData): Promise<AdminActionResult> {
   await requireAdmin();
-  const path = "/dashboard/products";
   const productId = normalizeText(formData.get("productId"));
 
   if (!productId) {
-    redirectWithFeedback(path, {
-      error: "Product is required.",
-    });
+    return {
+      success: false,
+      message: "Product is required.",
+    };
   }
 
   const parsed = safeParse(adminProductSchema, {
@@ -363,19 +412,46 @@ export async function updateProductAction(formData: FormData) {
     stock: normalizeNumber(formData.get("stock")),
     featured: normalizeBoolean(formData.get("featured")),
     published: normalizeBoolean(formData.get("published")),
-    imageUrls: normalizeOptionalText(formData.get("imageUrls")),
+    existingImageUrls: normalizeStringList(formData.getAll("existingImageUrls")),
   });
+  const newImages = normalizeFileList(formData.getAll("newImages"));
 
   if (!parsed.success) {
-    redirectWithFeedback(path, {
-      error: flattenValidationError(flatten(parsed.issues)),
-    });
+    return {
+      success: false,
+      message: flattenValidationError(flatten(parsed.issues)),
+    };
   }
 
   const output = parsed.output as AdminProductInput;
-  const imageUrls = parseImageUrls(output.imageUrls);
+
+  if (output.existingImageUrls.length + newImages.length === 0) {
+    return {
+      success: false,
+      message: "Add at least one product image before saving.",
+    };
+  }
 
   try {
+    const currentProduct = await prisma.product.findUnique({
+      where: {
+        id: productId,
+      },
+      select: {
+        slug: true,
+      },
+    });
+
+    if (!currentProduct) {
+      return {
+        success: false,
+        message: "Product not found.",
+      };
+    }
+
+    const uploadedImageUrls = await uploadProductImages(newImages);
+    const imageUrls = [...output.existingImageUrls, ...uploadedImageUrls];
+
     await prisma.$transaction(async (tx) => {
       await tx.product.update({
         where: {
@@ -417,23 +493,33 @@ export async function updateProductAction(formData: FormData) {
     });
 
     revalidateAdminSurfaces();
-    redirectWithFeedback(path, {
-      status: "Product updated successfully.",
-    });
+    revalidatePath(`/products/${currentProduct.slug}`);
+    revalidatePath(`/products/${output.slug}`);
+
+    return {
+      success: true,
+      message: output.published
+        ? "Product updated successfully."
+        : "Draft product updated successfully.",
+    };
   } catch (error) {
-    handleAdminActionError(path, error, "update the product");
+    console.error("Admin action error (update the product):", error);
+
+    return {
+      success: false,
+      message: getProductActionErrorMessage(error, "update the product"),
+    };
   }
 }
 
-export async function deleteProductAction(formData: FormData) {
+export async function deleteProductAction(productId: string): Promise<AdminActionResult> {
   await requireAdmin();
-  const path = "/dashboard/products";
-  const productId = normalizeText(formData.get("productId"));
 
   if (!productId) {
-    redirectWithFeedback(path, {
-      error: "Product is required.",
-    });
+    return {
+      success: false,
+      message: "Product is required.",
+    };
   }
 
   try {
@@ -448,9 +534,10 @@ export async function deleteProductAction(formData: FormData) {
     });
 
     if (!product) {
-      redirectWithFeedback(path, {
-        error: "Product not found.",
-      });
+      return {
+        success: false,
+        message: "Product not found.",
+      };
     }
 
     await prisma.product.update({
@@ -465,11 +552,19 @@ export async function deleteProductAction(formData: FormData) {
     });
 
     revalidateAdminSurfaces();
-    redirectWithFeedback(path, {
-      status: "Product archived successfully.",
-    });
+    revalidatePath(`/products/${product.slug}`);
+
+    return {
+      success: true,
+      message: "Product archived successfully.",
+    };
   } catch (error) {
-    handleAdminActionError(path, error, "delete the product");
+    console.error("Admin action error (delete the product):", error);
+
+    return {
+      success: false,
+      message: getProductActionErrorMessage(error, "archive the product"),
+    };
   }
 }
 

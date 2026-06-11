@@ -1,5 +1,7 @@
 import {
+  array,
   boolean,
+  check,
   maxLength,
   minLength,
   minValue,
@@ -9,6 +11,7 @@ import {
   optional,
   pipe,
   string,
+  url,
 } from "valibot";
 
 const requiredText = (fieldName: string) =>
@@ -24,7 +27,7 @@ export const orderStatusOptions = [
 
 export const paymentStatusOptions = ["PENDING", "COMPLETED", "FAILED"] as const;
 
-export const adminProductSchema = object({
+const productBaseEntries = {
   name: requiredText("Product name"),
   slug: requiredText("Product slug"),
   description: pipe(string(), maxLength(4000, "Description is too long.")),
@@ -38,8 +41,36 @@ export const adminProductSchema = object({
   stock: pipe(number(), minValue(0, "Stock cannot be negative.")),
   featured: boolean(),
   published: boolean(),
-  imageUrls: pipe(string(), maxLength(8000, "Image list is too long.")),
-});
+};
+
+export const adminProductSchema = pipe(
+  object({
+    ...productBaseEntries,
+    existingImageUrls: array(
+      pipe(string("Product image is required."), url("Product image URL is invalid.")),
+    ),
+  }),
+  check(
+    (input) =>
+      typeof input.discountPrice !== "number" || input.discountPrice <= input.price,
+    "Discount price cannot be greater than the main price.",
+  ),
+);
+
+export const adminProductFormSchema = pipe(
+  object({
+    ...productBaseEntries,
+    imagePreviewUrls: pipe(
+      array(pipe(string("Product image is required."), minLength(1, "Product image is required."))),
+      minLength(1, "Add at least one product image."),
+    ),
+  }),
+  check(
+    (input) =>
+      typeof input.discountPrice !== "number" || input.discountPrice <= input.price,
+    "Discount price cannot be greater than the main price.",
+  ),
+);
 
 export const adminCategorySchema = object({
   name: requiredText("Category name"),
