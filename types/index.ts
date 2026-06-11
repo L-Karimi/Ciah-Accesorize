@@ -55,7 +55,13 @@ export interface Category {
 }
 
 // Order types
-export type OrderStatus = "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+export type OrderStatus =
+  | "PENDING"
+  | "PAID"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "CANCELLED";
 export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED";
 
 export interface Order {
@@ -77,6 +83,16 @@ export interface OrderItem {
   productId: string;
   quantity: number;
   price: number;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  orderId: string | null;
+  title: string;
+  message: string;
+  createdAt: Date;
+  readAt: Date | null;
 }
 
 // Cart types

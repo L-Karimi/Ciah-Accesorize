@@ -26,6 +26,7 @@ model User {
   wishlists   Wishlist[]
   cartItems   CartItem[]
   reviews     Review[]
+  notifications Notification[]
   accounts    Account[]
   sessions    Session[]
 
@@ -199,6 +200,7 @@ model Order {
 
   items    OrderItem[]
   payment  Payment?
+  notifications Notification[]
 
   @@index([userId])
   @@index([status])
@@ -207,7 +209,8 @@ model Order {
 
 enum OrderStatus {
   PENDING
-  CONFIRMED
+  PAID
+  PROCESSING
   SHIPPED
   DELIVERED
   CANCELLED
@@ -217,6 +220,10 @@ enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
+}
+
+enum NotificationType {
+  ORDER_STATUS
 }
 
 // Order Item Model
@@ -262,6 +269,23 @@ model Payment {
   @@index([transactionId])
   @@index([checkoutRequestId])
   @@map("payments")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String?
+  order     Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  type      NotificationType @default(ORDER_STATUS)
+  title     String
+  message   String
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+
+  @@index([userId, createdAt])
+  @@index([orderId])
+  @@map("notifications")
 }
 
 // Address Model

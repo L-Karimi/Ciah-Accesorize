@@ -483,7 +483,7 @@ async function main() {
   const order = await prisma.order.create({
     data: {
       userId: user.id,
-      status: "CONFIRMED",
+      status: "PAID",
       paymentStatus: "COMPLETED",
       total: 9000,
       tax: 1000,
@@ -507,6 +507,18 @@ async function main() {
   });
 
   console.log("✓ Created sample order with items");
+
+  await prisma.notification.create({
+    data: {
+      userId: user.id,
+      orderId: order.id,
+      type: "ORDER_STATUS",
+      title: "Payment confirmed",
+      message: `Order ${order.id.slice(0, 12)} has been paid and is queued for fulfillment.`,
+    },
+  });
+
+  console.log("✓ Created sample order notification");
 
   // Create sample payment
   await prisma.payment.create({

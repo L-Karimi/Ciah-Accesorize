@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PaymentStatusActions } from "@/components/checkout/payment-status-actions";
 import { requireAuth } from "@/lib/auth-guards";
 import { getMpesaMaxRetries } from "@/lib/mpesa";
+import { formatOrderStatus, formatPaymentStatus } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -48,6 +49,21 @@ export default async function CheckoutSuccessPage({
               retryCount: true,
             },
           },
+          notifications: {
+            where: {
+              type: "ORDER_STATUS",
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 3,
+            select: {
+              id: true,
+              title: true,
+              message: true,
+              createdAt: true,
+            },
+          },
         },
       })
     : null;
@@ -60,6 +76,30 @@ export default async function CheckoutSuccessPage({
     (payment?.retryCount ?? 0) < getMpesaMaxRetries();
   const canVerify = Boolean(order?.id) && paymentStatusLabel !== "COMPLETED";
   const maxRetries = getMpesaMaxRetries();
+  const statusHeadline =
+    order?.status === "PENDING"
+      ? "Your order is waiting on M-Pesa confirmation."
+      : order?.status === "PAID"
+        ? "Your payment is confirmed."
+        : order?.status === "PROCESSING"
+          ? "Your order is being prepared."
+          : order?.status === "SHIPPED"
+            ? "Your order is on the way."
+            : order?.status === "DELIVERED"
+              ? "Your order has been delivered."
+              : "Your order has been cancelled.";
+  const statusDescription =
+    order?.status === "PENDING"
+      ? "We created your order, triggered the Safaricom STK push, and will confirm the order automatically when payment clears."
+      : order?.status === "PAID"
+        ? "Payment has cleared successfully and your order is now queued for fulfillment."
+        : order?.status === "PROCESSING"
+          ? "Our team is currently packing and preparing your items for dispatch."
+          : order?.status === "SHIPPED"
+            ? "Your items have left our store and are moving through delivery."
+            : order?.status === "DELIVERED"
+              ? "Delivery is complete. Thank you for shopping with Ciah Accessorize."
+              : "This order has been cancelled. Contact support if you still need assistance.";
 
   if (!orderId || !order) {
     return (
@@ -100,11 +140,10 @@ export default async function CheckoutSuccessPage({
             Payment Status
           </p>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-            Your order is waiting on M-Pesa confirmation.
+            {statusHeadline}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
-            We created your order, triggered the Safaricom STK push, and will
-            confirm the order automatically when payment clears.
+            {statusDescription}
           </p>
         </section>
 
@@ -127,7 +166,8 @@ export default async function CheckoutSuccessPage({
               </div>
               <CardTitle className="mt-4">Payment lifecycle</CardTitle>
               <CardDescription>
-                Order status: {order.status}. Payment status: {paymentStatusLabel}.
+                Order status: {formatOrderStatus(order.status)}. Payment status:{" "}
+                {formatPaymentStatus(paymentStatusLabel)}.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -222,6 +262,36 @@ export default async function CheckoutSuccessPage({
           </CardContent>
         </Card>
 
+        {order.notifications.length > 0 ? (
+          <Card className="bg-white">
+            <CardHeader>
+              <CardTitle>Latest order updates</CardTitle>
+              <CardDescription>
+                We will keep adding updates here as the order moves through fulfillment.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {order.notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="rounded-[20px] border border-border/70 bg-[#fcfaf7] px-4 py-4"
+                >
+                  <p className="font-medium text-foreground">{notification.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    {notification.message}
+                  </p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#8B5E3C]">
+                    {notification.createdAt.toLocaleString("en-KE", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : null}
+
         <Card className="bg-white">
           <CardContent className="pt-6 text-sm leading-7 text-muted-foreground">
             Total: KES {order.total.toLocaleString()}. Created on{" "}
@@ -229,8 +299,8 @@ export default async function CheckoutSuccessPage({
               dateStyle: "medium",
               timeStyle: "short",
             })}
-            . Your order will move to <span className="font-medium text-foreground">CONFIRMED</span>{" "}
-            automatically after successful payment verification.
+            . Your order will move to <span className="font-medium text-foreground">Paid</span>{" "}
+            automatically after successful payment verification, then continue through processing and delivery.
           </CardContent>
         </Card>
       </div>

@@ -17,14 +17,6 @@ import {
 const requiredText = (fieldName: string) =>
   pipe(string(`${fieldName} is required.`), nonEmpty(`${fieldName} is required.`));
 
-export const orderStatusOptions = [
-  "PENDING",
-  "CONFIRMED",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELLED",
-] as const;
-
 export const paymentStatusOptions = ["PENDING", "COMPLETED", "FAILED"] as const;
 
 const productBaseEntries = {
@@ -92,10 +84,5 @@ export const adminOrderSchema = object({
     string("Order status is required."),
     nonEmpty("Order status is required."),
     minLength(2, "Order status is required."),
-  ),
-  paymentStatus: pipe(
-    string("Payment status is required."),
-    nonEmpty("Payment status is required."),
-    minLength(2, "Payment status is required."),
   ),
 });

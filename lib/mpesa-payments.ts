@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { Prisma } from "@prisma/client";
+import { createOrderStatusNotification } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import {
   getMpesaMaxRetries,
@@ -63,6 +64,8 @@ async function markPaymentCompleted(
   },
 ) {
   return prisma.$transaction(async (tx) => {
+    const shouldNotify = payment.order.status !== "PAID";
+
     await tx.payment.update({
       where: {
         id: payment.id,
@@ -86,9 +89,17 @@ async function markPaymentCompleted(
       },
       data: {
         paymentStatus: "COMPLETED",
-        status: "CONFIRMED",
+        status: "PAID",
       },
     });
+
+    if (shouldNotify) {
+      await createOrderStatusNotification(tx, {
+        userId: payment.order.userId,
+        orderId: payment.orderId,
+        status: "PAID",
+      });
+    }
   });
 }
 

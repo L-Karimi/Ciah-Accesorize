@@ -3,6 +3,7 @@ import { FlashBanner } from "@/components/admin/flash-banner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { getAdminOverviewData } from "@/lib/admin";
+import { formatOrderStatus, formatPaymentStatus } from "@/lib/orders";
 
 interface DashboardPageProps {
   searchParams?: Promise<{
@@ -72,7 +73,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   <div>
                     <p className="font-medium text-foreground">{order.customerName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {order.id.slice(0, 12)} · {order.status} · {order.paymentStatus}
+                      {order.id.slice(0, 12)} · {formatOrderStatus(order.status)} ·{" "}
+                      {formatPaymentStatus(order.paymentStatus)}
                     </p>
                   </div>
                   <p className="font-semibold text-foreground">

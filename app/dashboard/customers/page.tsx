@@ -1,6 +1,7 @@
 import { FlashBanner } from "@/components/admin/flash-banner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAdminCustomersData } from "@/lib/admin";
+import { formatOrderStatus } from "@/lib/orders";
 
 interface AdminCustomersPageProps {
   searchParams?: Promise<{
@@ -109,7 +110,7 @@ export default async function AdminCustomersPage({
                           key={order.id}
                           className="rounded-[18px] border border-border/70 bg-white px-4 py-3 text-sm text-muted-foreground"
                         >
-                          {order.id.slice(0, 12)} · {order.status} · KES{" "}
+                          {order.id.slice(0, 12)} · {formatOrderStatus(order.status)} · KES{" "}
                           {order.total.toLocaleString()}
                         </div>
                       ))

@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/auth-guards";
 import { getCurrentCartSnapshot } from "@/lib/cart";
 import { buildShippingAddressSnapshot, splitCustomerName } from "@/lib/checkout";
 import { initiateMpesaPaymentForOrder } from "@/lib/mpesa-payments";
+import { createOrderStatusNotification } from "@/lib/notifications";
 import { checkoutSchema } from "@/lib/validations/checkout";
 import { flatten, safeParse, type InferOutput } from "valibot";
 
@@ -149,6 +150,12 @@ export async function createPendingOrder(input: CheckoutInput) {
           total: true,
           createdAt: true,
         },
+      });
+
+      await createOrderStatusNotification(tx, {
+        userId: session.user.id,
+        orderId: createdOrder.id,
+        status: "PENDING",
       });
 
       await tx.cartItem.deleteMany({

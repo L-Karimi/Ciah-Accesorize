@@ -6,6 +6,12 @@ import { redirect } from "next/navigation";
 import { flatten, safeParse, type InferOutput } from "valibot";
 import { requireAdmin } from "@/lib/auth-guards";
 import { uploadProductImage } from "@/lib/cloudinary";
+import { createOrderStatusNotification } from "@/lib/notifications";
+import {
+  getPaymentStatusForOrderStatus,
+  orderStatusOptions,
+  type ManagedOrderStatus,
+} from "@/lib/orders";
 import {
   getDatabaseSetupErrorMessage,
   isPrismaSetupError,
@@ -17,8 +23,6 @@ import {
   adminInventorySchema,
   adminOrderSchema,
   adminProductSchema,
-  orderStatusOptions,
-  paymentStatusOptions,
 } from "@/lib/validations/admin";
 
 type AdminCategoryInput = InferOutput<typeof adminCategorySchema>;
@@ -77,12 +81,6 @@ function isValidOrderStatus(value: string): value is (typeof orderStatusOptions)
   return orderStatusOptions.includes(value as (typeof orderStatusOptions)[number]);
 }
 
-function isValidPaymentStatus(
-  value: string,
-): value is (typeof paymentStatusOptions)[number] {
-  return paymentStatusOptions.includes(value as (typeof paymentStatusOptions)[number]);
-}
-
 function revalidateAdminSurfaces() {
   revalidatePath("/dashboard", "layout");
   revalidatePath("/dashboard");
@@ -93,6 +91,8 @@ function revalidateAdminSurfaces() {
   revalidatePath("/dashboard/customers");
   revalidatePath("/");
   revalidatePath("/products");
+  revalidatePath("/account");
+  revalidatePath("/checkout/success");
 }
 
 function redirectWithFeedback(path: string, params: Record<string, string>): never {
@@ -615,7 +615,6 @@ export async function updateOrderAction(formData: FormData) {
   const parsed = safeParse(adminOrderSchema, {
     orderId: normalizeText(formData.get("orderId")),
     status: normalizeText(formData.get("status")),
-    paymentStatus: normalizeText(formData.get("paymentStatus")),
   });
 
   if (!parsed.success) {
@@ -626,17 +625,37 @@ export async function updateOrderAction(formData: FormData) {
 
   const output = parsed.output as AdminOrderInput;
 
-  if (!isValidOrderStatus(output.status) || !isValidPaymentStatus(output.paymentStatus)) {
+  if (!isValidOrderStatus(output.status)) {
     redirectWithFeedback(path, {
-      error: "Please choose a valid order and payment status.",
+      error: "Please choose a valid order status.",
     });
   }
 
-  const orderStatus = output.status;
-  const paymentStatus = output.paymentStatus;
+  const orderStatus = output.status as ManagedOrderStatus;
 
   try {
     await prisma.$transaction(async (tx) => {
+      const existingOrder = await tx.order.findUnique({
+        where: {
+          id: output.orderId,
+        },
+        select: {
+          id: true,
+          userId: true,
+          status: true,
+          paymentStatus: true,
+        },
+      });
+
+      if (!existingOrder) {
+        throw new Error("Order not found.");
+      }
+
+      const paymentStatus = getPaymentStatusForOrderStatus(
+        orderStatus,
+        existingOrder.paymentStatus,
+      );
+
       await tx.order.update({
         where: {
           id: output.orderId,
@@ -658,14 +677,24 @@ export async function updateOrderAction(formData: FormData) {
               ? "COMPLETED"
               : paymentStatus === "FAILED"
                 ? "FAILED"
-                : "PENDING",
+                : orderStatus === "CANCELLED"
+                  ? "ORDER_CANCELLED"
+                  : "PENDING",
         },
       });
+
+      if (existingOrder.status !== orderStatus) {
+        await createOrderStatusNotification(tx, {
+          userId: existingOrder.userId,
+          orderId: existingOrder.id,
+          status: orderStatus,
+        });
+      }
     });
 
     revalidateAdminSurfaces();
     redirectWithFeedback(path, {
-      status: "Order updated successfully.",
+      status: "Order updated and customer notified successfully.",
     });
   } catch (error) {
     handleAdminActionError(path, error, "update the order");
